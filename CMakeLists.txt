@@ -93,11 +93,11 @@ set(FACTORY_SOURCES
 # )
 
 # Link Qt libraries
-# target_link_libraries(${PROJECT_NAME} PRIVATE
-#     Qt6::Core
-#     Qt6::Quick
-#     Qt6::Widgets
-# )
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    Qt6::Core
+    Qt6::Quick
+    Qt6::Widgets
+)
 
 # Target properties
 # set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -129,7 +129,7 @@ endif()
 
 if(UNIX AND NOT APPLE)
     # Linux-specific settings
-    # target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_LINUX)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_LINUX)
 endif()
 
 # ========================================
