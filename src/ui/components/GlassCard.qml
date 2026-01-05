@@ -30,7 +30,7 @@ Item {
         // This prevents performance issues when many cards are rendered
         layer.enabled: root.enableLayer
         layer.smooth: root.enableLayer
-        layer.samples: root.enableLayer ? 4 : 0  // MSAA for smooth edges
+        layer.samples: 4  // MSAA for smooth edges
         
         // Inner highlight for glassmorphism effect
         Rectangle {

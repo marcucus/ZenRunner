@@ -132,9 +132,6 @@ GlassCard {
                     width: logView.width
                     height: logLine.height + 4
                     
-                    // Enable GPU compositing for smoother scrolling
-                    layer.enabled: true
-                    
                     Row {
                         spacing: 8
                         

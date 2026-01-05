@@ -43,11 +43,9 @@ Rectangle {
 ```
 
 **Applied selectively in**:
-- Animated particles (Main.qml) - for smooth animations
-- Log delegate items (LogConsole.qml) - for smooth scrolling
 - Glass cards with effects (GlassCard.qml) - configurable via `enableLayer` property
 
-**Note**: Layer compositing is now configurable in GlassCard to prevent performance issues when many cards are rendered simultaneously.
+**Note**: Layer compositing is now configurable in GlassCard to prevent performance issues when many cards are rendered simultaneously. Delegates and simple animated items do not use layers to conserve GPU memory.
 
 ### 2. ListView Optimization (LogConsole.qml)
 
@@ -75,7 +73,7 @@ Animations are optimized to reduce GPU load:
 **Particle System (Main.qml)**:
 - Reduced from 20 to 10 particles
 - Longer durations (4-7 seconds vs 3-5 seconds)
-- GPU layer compositing enabled
+- Simplified rendering without GPU layers for better memory efficiency
 
 **Status Indicators (Dashboard.qml)**:
 - Optimized easing curves

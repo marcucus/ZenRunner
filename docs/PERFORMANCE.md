@@ -66,9 +66,9 @@ Rectangle {
 - Improves animation performance
 
 **Applied to**:
-- Animated particles (Main.qml)
-- Log console delegates (LogConsole.qml)
 - Glass cards when needed (GlassCard.qml - configurable via `enableLayer` property)
+
+**Note**: Layer compositing is used sparingly to avoid GPU memory overhead. Simple animations and delegates render directly without layers for better memory efficiency.
 
 ### 2. ListView Optimizations
 

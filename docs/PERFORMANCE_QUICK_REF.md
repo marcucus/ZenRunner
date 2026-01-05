@@ -32,7 +32,7 @@
 ## QML Performance Optimizations
 
 ### Layer Compositing
-Used in: Main.qml, GlassCard.qml, LogConsole.qml, Dashboard.qml
+Used in: GlassCard.qml (when `enableLayer` is true)
 
 ```qml
 Item {

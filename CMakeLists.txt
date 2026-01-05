@@ -12,6 +12,10 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+# Check for Link Time Optimization support
+include(CheckIPOSupported)
+check_ipo_supported(RESULT LTO_SUPPORTED OUTPUT LTO_ERROR)
+
 # Find Qt6 packages
 find_package(Qt6 REQUIRED COMPONENTS
     Core
@@ -129,9 +133,17 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 set_target_properties(${PROJECT_NAME} PROPERTIES
     OUTPUT_NAME "ZenRunner"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-    # Enable Link Time Optimization for better performance
-    INTERPROCEDURAL_OPTIMIZATION TRUE
 )
+
+# Enable Link Time Optimization if supported for better performance
+if(LTO_SUPPORTED)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        INTERPROCEDURAL_OPTIMIZATION TRUE
+    )
+    message(STATUS "Link Time Optimization (LTO) enabled")
+else()
+    message(STATUS "Link Time Optimization (LTO) not supported: ${LTO_ERROR}")
+endif()
 
 # ========================================
 # Platform-specific configurations
