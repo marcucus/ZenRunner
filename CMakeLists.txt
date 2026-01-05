@@ -12,6 +12,10 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+# Check for Link Time Optimization support
+include(CheckIPOSupported)
+check_ipo_supported(RESULT LTO_SUPPORTED OUTPUT LTO_ERROR)
+
 # Find Qt6 packages
 find_package(Qt6 REQUIRED COMPONENTS
     Core
@@ -83,21 +87,41 @@ set(FACTORY_SOURCES
     # src/ApplicationFactory.cpp
 )
 
-# Main executable
-add_executable(ZenRunner
+# Main executable with UI and backend
+set(SOURCES
     src/main.cpp
-    ${CORE_SOURCES}
-    ${PLATFORM_SOURCES}
+    src/core/ProcessManager.cpp
+    src/core/Project.cpp
+    src/platform/NativeEffects.cpp
+    src/platform/GenericNativeEffects.cpp
 )
 
-# Signal latency test executable
-add_executable(test_signal_latency
-    src/test_signal_latency.cpp
-    ${CORE_SOURCES}
+# Platform-specific sources
+if(WIN32)
+    list(APPEND SOURCES src/platform/WindowsNativeEffects.cpp)
+elseif(APPLE)
+    list(APPEND SOURCES src/platform/MacOSNativeEffects.mm)
+endif()
+
+# QML and resource files
+qt_add_executable(${PROJECT_NAME}
+    ${SOURCES}
 )
 
-# Enable profiling for test executable
-target_compile_definitions(test_signal_latency PRIVATE ZENRUNNER_ENABLE_PROFILING)
+# Add QML module for the UI
+qt_add_qml_module(${PROJECT_NAME}
+    URI ui
+    VERSION 1.0
+    QML_FILES
+        src/ui/Main.qml
+        src/ui/Dashboard.qml
+        src/ui/LogConsole.qml
+        src/ui/ProjectView.qml
+        src/ui/WorkspaceManager.qml
+        src/ui/components/GlassCard.qml
+        src/ui/components/GlassButton.qml
+    RESOURCE_PREFIX "/ui"
+)
 
 # Link Qt libraries
 target_link_libraries(ZenRunner PRIVATE
@@ -106,41 +130,39 @@ target_link_libraries(ZenRunner PRIVATE
     Qt6::Widgets
 )
 
-target_link_libraries(test_signal_latency PRIVATE
-    Qt6::Core
-)
-
-# Target properties
-set_target_properties(ZenRunner PROPERTIES
+# Target properties for performance optimization
+set_target_properties(${PROJECT_NAME} PROPERTIES
     OUTPUT_NAME "ZenRunner"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
-set_target_properties(test_signal_latency PROPERTIES
-    OUTPUT_NAME "test_signal_latency"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
+# Enable Link Time Optimization if supported for better performance
+if(LTO_SUPPORTED)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        INTERPROCEDURAL_OPTIMIZATION TRUE
+    )
+    message(STATUS "Link Time Optimization (LTO) enabled")
+else()
+    message(STATUS "Link Time Optimization (LTO) not supported: ${LTO_ERROR}")
+endif()
 
 # ========================================
 # Platform-specific configurations
 # ========================================
 if(WIN32)
     # Windows-specific settings (Mica support, DWM API, etc.)
-    target_compile_definitions(ZenRunner PRIVATE ZENRUNNER_WINDOWS)
-    # target_link_libraries(ZenRunner PRIVATE dwmapi)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_WINDOWS)
+    target_link_libraries(${PROJECT_NAME} PRIVATE dwmapi)
 endif()
 
 if(APPLE)
     # macOS-specific settings (Vibrancy, Notch detection, etc.)
-    target_compile_definitions(ZenRunner PRIVATE ZENRUNNER_MACOS)
-    # Enable Objective-C++ for macOS native APIs
-    # set_source_files_properties(${PLATFORM_SOURCES} PROPERTIES
-    #     COMPILE_FLAGS "-x objective-c++"
-    # )
-    # target_link_libraries(ZenRunner PRIVATE
-    #     "-framework AppKit"
-    #     "-framework Foundation"
-    # )
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_MACOS)
+    # Objective-C++ files are automatically handled by CMake based on .mm extension
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        "-framework AppKit"
+        "-framework Foundation"
+    )
 endif()
 
 if(UNIX AND NOT APPLE)

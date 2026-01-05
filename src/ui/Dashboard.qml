@@ -275,8 +275,8 @@ Item {
             SequentialAnimation on opacity {
                 running: status !== "idle"
                 loops: Animation.Infinite
-                NumberAnimation { to: 0.4; duration: 1000 }
-                NumberAnimation { to: 1.0; duration: 1000 }
+                NumberAnimation { to: 0.4; duration: 1000; easing.type: Easing.InOutQuad }
+                NumberAnimation { to: 1.0; duration: 1000; easing.type: Easing.InOutQuad }
             }
         }
         
