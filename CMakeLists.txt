@@ -125,6 +125,25 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 # ========================================
+# Test Executables
+# ========================================
+
+# Circular Buffer Test
+add_executable(test_circular_buffer
+    src/test_circular_buffer.cpp
+    src/core/LogBuffer.cpp
+)
+
+target_link_libraries(test_circular_buffer PRIVATE
+    Qt6::Core
+)
+
+set_target_properties(test_circular_buffer PROPERTIES
+    OUTPUT_NAME "test_circular_buffer"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+# ========================================
 # Platform-specific configurations
 # ========================================
 if(WIN32)
