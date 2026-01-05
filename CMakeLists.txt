@@ -44,9 +44,8 @@ endif()
 
 # Core Layer sources (to be implemented)
 set(CORE_SOURCES
-    # Implementations of core interfaces:
-    # src/core/ProcessManager.cpp
-    # src/core/Project.cpp
+    src/core/ProcessManager.cpp
+    src/core/Project.cpp
     # src/core/Workspace.cpp
     # src/core/JsonParser.cpp
     # src/core/LogBuffer.cpp
@@ -54,7 +53,9 @@ set(CORE_SOURCES
 
 # Platform Layer sources (to be implemented)
 set(PLATFORM_SOURCES
-    # Implementations of platform interfaces:
+    src/platform/NativeEffects.cpp
+    src/platform/GenericNativeEffects.cpp
+    src/platform/WindowsNativeEffects.cpp
     # src/platform/PlatformEffect.cpp
     # src/platform/SystemTray.cpp
     # src/platform/NativeNotifications.cpp
@@ -82,46 +83,61 @@ set(FACTORY_SOURCES
     # src/ApplicationFactory.cpp
 )
 
-# Main executable (to be configured when implementations are ready)
-# add_executable(${PROJECT_NAME}
-#     src/main.cpp
-#     ${CORE_SOURCES}
-#     ${PLATFORM_SOURCES}
-#     ${STORAGE_SOURCES}
-#     ${UI_SOURCES}
-#     ${FACTORY_SOURCES}
-# )
+# Main executable
+add_executable(ZenRunner
+    src/main.cpp
+    ${CORE_SOURCES}
+    ${PLATFORM_SOURCES}
+)
+
+# Signal latency test executable
+add_executable(test_signal_latency
+    src/test_signal_latency.cpp
+    ${CORE_SOURCES}
+)
+
+# Enable profiling for test executable
+target_compile_definitions(test_signal_latency PRIVATE ZENRUNNER_ENABLE_PROFILING)
 
 # Link Qt libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(ZenRunner PRIVATE
     Qt6::Core
     Qt6::Quick
     Qt6::Widgets
 )
 
+target_link_libraries(test_signal_latency PRIVATE
+    Qt6::Core
+)
+
 # Target properties
-# set_target_properties(${PROJECT_NAME} PROPERTIES
-#     OUTPUT_NAME "ZenRunner"
-#     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-# )
+set_target_properties(ZenRunner PROPERTIES
+    OUTPUT_NAME "ZenRunner"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+set_target_properties(test_signal_latency PROPERTIES
+    OUTPUT_NAME "test_signal_latency"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
 
 # ========================================
 # Platform-specific configurations
 # ========================================
 if(WIN32)
     # Windows-specific settings (Mica support, DWM API, etc.)
-    # target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_WINDOWS)
-    # target_link_libraries(${PROJECT_NAME} PRIVATE dwmapi)
+    target_compile_definitions(ZenRunner PRIVATE ZENRUNNER_WINDOWS)
+    # target_link_libraries(ZenRunner PRIVATE dwmapi)
 endif()
 
 if(APPLE)
     # macOS-specific settings (Vibrancy, Notch detection, etc.)
-    # target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_MACOS)
+    target_compile_definitions(ZenRunner PRIVATE ZENRUNNER_MACOS)
     # Enable Objective-C++ for macOS native APIs
     # set_source_files_properties(${PLATFORM_SOURCES} PROPERTIES
     #     COMPILE_FLAGS "-x objective-c++"
     # )
-    # target_link_libraries(${PROJECT_NAME} PRIVATE
+    # target_link_libraries(ZenRunner PRIVATE
     #     "-framework AppKit"
     #     "-framework Foundation"
     # )
@@ -129,7 +145,8 @@ endif()
 
 if(UNIX AND NOT APPLE)
     # Linux-specific settings
-    target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_LINUX)
+    target_compile_definitions(ZenRunner PRIVATE ZENRUNNER_LINUX)
+    target_compile_definitions(test_signal_latency PRIVATE ZENRUNNER_LINUX)
 endif()
 
 # ========================================

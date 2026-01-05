@@ -2,6 +2,7 @@
 
 #include <array>
 #include <mutex>
+#include <vector>
 #include <optional>
 #include <concepts>
 
