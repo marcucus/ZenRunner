@@ -19,6 +19,7 @@ check_ipo_supported(RESULT LTO_SUPPORTED OUTPUT LTO_ERROR)
 # Find Qt6 packages
 find_package(Qt6 REQUIRED COMPONENTS
     Core
+    Gui
     Quick
     Widgets
 )
@@ -74,6 +75,8 @@ set(CORE_SOURCES
     src/core/JsonParser.cpp
     src/core/LogBuffer.cpp
     src/core/MemoryMonitor.cpp
+    src/core/AnsiParser.cpp
+    include/core/IAnsiParser.hpp
 )
 
 # Platform Layer sources
@@ -149,6 +152,22 @@ target_link_libraries(test_circular_buffer PRIVATE
 
 set_target_properties(test_circular_buffer PROPERTIES
     OUTPUT_NAME "test_circular_buffer"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+# ANSI Parser Test
+add_executable(test_ansi_parser
+    src/test_ansi_parser.cpp
+    src/core/AnsiParser.cpp
+)
+
+target_link_libraries(test_ansi_parser PRIVATE
+    Qt6::Core
+    Qt6::Gui
+)
+
+set_target_properties(test_ansi_parser PROPERTIES
+    OUTPUT_NAME "test_ansi_parser"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 

@@ -1,5 +1,6 @@
 #include "LogBuffer.h"
 #include "core/CircularBuffer.h"
+#include "AnsiParser.h"
 #include <QDateTime>
 #include <algorithm>
 
@@ -10,12 +11,14 @@ namespace ZenRunner::Core {
  * 
  * This implementation uses a fixed-size circular buffer to ensure O(1) operations
  * and prevent memory growth. The default capacity is 5000 entries as per specs.
+ * Integrates ANSI/VT100 parser for colored log output.
  */
 class LogBuffer : public ILogBuffer {
 public:
     explicit LogBuffer(size_t capacity = 5000)
         : capacity_(capacity)
         , buffer_(std::make_unique<CircularBuffer<LogEntry, 5000>>())
+        , ansiParser_(createAnsiParser())
     {
         // Pre-allocate if capacity is different from default
         // For simplicity, we use the fixed-size template parameter
@@ -32,6 +35,20 @@ public:
         entry.text = text;
         entry.timestamp = QDateTime::currentMSecsSinceEpoch();
         entry.isError = isError;
+        
+        // Parse ANSI codes asynchronously (still fast due to O(n) parser)
+        if (ansiParser_ && ansiParser_->containsAnsiCodes(text)) {
+            entry.hasAnsiCodes = true;
+            entry.segments = ansiParser_->parse(text);
+            entry.plainText = ansiParser_->stripAnsiCodes(text);
+        } else {
+            entry.hasAnsiCodes = false;
+            entry.plainText = text;
+            // Create single unstyled segment for consistency
+            StyledSegment segment;
+            segment.text = text;
+            entry.segments = {segment};
+        }
         
         buffer_->emplace(std::move(entry));
     }
@@ -70,7 +87,7 @@ public:
         result.reserve(allEntries.size() / 10); // Heuristic: expect ~10% match rate
         
         for (const auto& entry : allEntries) {
-            if (entry.text.toLower().contains(lowerSearchText)) {
+            if (entry.plainText.toLower().contains(lowerSearchText)) {
                 result.push_back(entry);
             }
         }
@@ -113,6 +130,7 @@ public:
 private:
     size_t capacity_;
     std::unique_ptr<CircularBuffer<LogEntry, 5000>> buffer_;
+    std::unique_ptr<IAnsiParser> ansiParser_;
 };
 
 // Factory function to create LogBuffer instances
