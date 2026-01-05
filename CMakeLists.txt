@@ -82,15 +82,41 @@ set(FACTORY_SOURCES
     # src/ApplicationFactory.cpp
 )
 
-# Main executable (to be configured when implementations are ready)
-# add_executable(${PROJECT_NAME}
-#     src/main.cpp
-#     ${CORE_SOURCES}
-#     ${PLATFORM_SOURCES}
-#     ${STORAGE_SOURCES}
-#     ${UI_SOURCES}
-#     ${FACTORY_SOURCES}
-# )
+# Main executable with UI and backend
+set(SOURCES
+    src/main.cpp
+    src/core/ProcessManager.cpp
+    src/core/Project.cpp
+    src/platform/NativeEffects.cpp
+    src/platform/GenericNativeEffects.cpp
+)
+
+# Platform-specific sources
+if(WIN32)
+    list(APPEND SOURCES src/platform/WindowsNativeEffects.cpp)
+elseif(APPLE)
+    list(APPEND SOURCES src/platform/MacOSNativeEffects.mm)
+endif()
+
+# QML and resource files
+qt_add_executable(${PROJECT_NAME}
+    ${SOURCES}
+)
+
+# Add QML module for the UI
+qt_add_qml_module(${PROJECT_NAME}
+    URI ui
+    VERSION 1.0
+    QML_FILES
+        src/ui/Main.qml
+        src/ui/Dashboard.qml
+        src/ui/LogConsole.qml
+        src/ui/ProjectView.qml
+        src/ui/WorkspaceManager.qml
+        src/ui/components/GlassCard.qml
+        src/ui/components/GlassButton.qml
+    RESOURCE_PREFIX "/ui"
+)
 
 # Link Qt libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -99,32 +125,31 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Widgets
 )
 
-# Target properties
-# set_target_properties(${PROJECT_NAME} PROPERTIES
-#     OUTPUT_NAME "ZenRunner"
-#     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-# )
+# Target properties for performance optimization
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    OUTPUT_NAME "ZenRunner"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    # Enable Link Time Optimization for better performance
+    INTERPROCEDURAL_OPTIMIZATION TRUE
+)
 
 # ========================================
 # Platform-specific configurations
 # ========================================
 if(WIN32)
     # Windows-specific settings (Mica support, DWM API, etc.)
-    # target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_WINDOWS)
-    # target_link_libraries(${PROJECT_NAME} PRIVATE dwmapi)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_WINDOWS)
+    target_link_libraries(${PROJECT_NAME} PRIVATE dwmapi)
 endif()
 
 if(APPLE)
     # macOS-specific settings (Vibrancy, Notch detection, etc.)
-    # target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_MACOS)
-    # Enable Objective-C++ for macOS native APIs
-    # set_source_files_properties(${PLATFORM_SOURCES} PROPERTIES
-    #     COMPILE_FLAGS "-x objective-c++"
-    # )
-    # target_link_libraries(${PROJECT_NAME} PRIVATE
-    #     "-framework AppKit"
-    #     "-framework Foundation"
-    # )
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_MACOS)
+    # Objective-C++ files are automatically handled by CMake based on .mm extension
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        "-framework AppKit"
+        "-framework Foundation"
+    )
 endif()
 
 if(UNIX AND NOT APPLE)

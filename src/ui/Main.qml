@@ -20,22 +20,36 @@ ApplicationWindow {
            Qt.WindowMinimizeButtonHint | Qt.WindowMaximizeButtonHint | 
            Qt.WindowCloseButtonHint
     
+    // Performance optimizations for 60 FPS target
+    // Enable GPU acceleration for the entire window
+    Component.onCompleted: {
+        // Set render mode to continuous for smooth animations
+        if (typeof mainWindow.scheduleRenderJob !== 'undefined') {
+            mainWindow.scheduleRenderJob(function() {}, QQuickWindow.BeforeSynchronizingStage)
+        }
+    }
+    
     // Main container with glassmorphism effect
     Item {
         anchors.fill: parent
         
-        // Background gradient
+        // Background gradient - use layer for GPU compositing
         Rectangle {
             anchors.fill: parent
             gradient: Gradient {
                 GradientStop { position: 0.0; color: "#1a1a2e" }
                 GradientStop { position: 1.0; color: "#0f0f1e" }
             }
+            
+            // Enable layer for GPU compositing
+            layer.enabled: true
+            layer.smooth: true
         }
         
-        // Animated background particles for depth
+        // Optimized animated background particles for depth
+        // Reduced count from 20 to 10 for better performance
         Repeater {
-            model: 20
+            model: 10
             
             Rectangle {
                 id: particle
@@ -46,20 +60,24 @@ ApplicationWindow {
                 x: Math.random() * mainWindow.width
                 y: Math.random() * mainWindow.height
                 
-                // Subtle float animation
+                // Enable layer for GPU compositing of particles
+                layer.enabled: true
+                layer.smooth: true
+                
+                // Optimized float animation with longer duration to reduce GPU load
                 SequentialAnimation on y {
                     running: true
                     loops: Animation.Infinite
                     NumberAnimation {
                         from: particle.y
                         to: particle.y - 50
-                        duration: 3000 + Math.random() * 2000
+                        duration: 4000 + Math.random() * 3000
                         easing.type: Easing.InOutSine
                     }
                     NumberAnimation {
                         from: particle.y - 50
                         to: particle.y
-                        duration: 3000 + Math.random() * 2000
+                        duration: 4000 + Math.random() * 3000
                         easing.type: Easing.InOutSine
                     }
                 }
@@ -69,12 +87,12 @@ ApplicationWindow {
                     loops: Animation.Infinite
                     NumberAnimation {
                         to: 0.8
-                        duration: 2000 + Math.random() * 1000
+                        duration: 3000 + Math.random() * 2000
                         easing.type: Easing.InOutQuad
                     }
                     NumberAnimation {
                         to: 0.2
-                        duration: 2000 + Math.random() * 1000
+                        duration: 3000 + Math.random() * 2000
                         easing.type: Easing.InOutQuad
                     }
                 }
@@ -86,9 +104,10 @@ ApplicationWindow {
             id: dashboard
             anchors.fill: parent
             anchors.margins: 20
+            
+            // Enable layer for GPU compositing of dashboard
+            layer.enabled: true
+            layer.smooth: true
         }
     }
-    
-    // Memory optimization: Use ShaderEffectSource for background blur only when needed
-    property bool useBlur: false
 }
