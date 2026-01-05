@@ -1,6 +1,7 @@
 #include "core/ProcessManager.h"
 #include "core/Project.h"
 #include "core/CircularBuffer.h"
+#include "core/MemoryMonitor.hpp"
 #include "types/CommonTypes.h"
 
 #include <QGuiApplication>
@@ -25,56 +26,12 @@ int main(int argc, char *argv[]) {
     // Use threaded render loop for consistent 60 FPS
     qputenv("QSG_RENDER_LOOP", "threaded");
     
-    // Enable RHI (Rendering Hardware Interface) for modern GPU acceleration
-    // Using Unknown lets Qt automatically select the best available API:
-    // - Vulkan on Linux with modern drivers (falls back to OpenGL on older systems)
-    // - Metal on macOS
-    // - Direct3D 11/12 on Windows
-    // - OpenGL ES 2.0 as universal fallback
-    QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::Unknown);
+    // Log initial memory usage
+    qDebug() << "\n[Initial Memory Usage]";
+    Memory::MemoryMonitor::logUsage();
     
-    // Set high quality antialiasing for smooth visuals
-    QSurfaceFormat format;
-    format.setSamples(4);  // 4x MSAA for smooth edges
-    QSurfaceFormat::setDefaultFormat(format);
-    
-    QGuiApplication app(argc, argv);
-    
-    // Application metadata
-    app.setOrganizationName("ZenRunner");
-    app.setOrganizationDomain("zenrunner.dev");
-    app.setApplicationName("ZenRunner");
-    app.setApplicationVersion("1.0.0");
-    
-    qDebug() << "ZenRunner - High-Performance Native Process Manager";
-    qDebug() << "==================================================";
-    qDebug() << "GPU Acceleration: RHI (auto-detect best API)";
-    qDebug() << "Render Loop: Threaded (60 FPS target)";
-    qDebug() << "Antialiasing: 4x MSAA";
-    
-    // Create QML engine and load UI
-    QQmlApplicationEngine engine;
-    
-    // Enable QML caching for faster subsequent loads
-    engine.setOutputWarningsToStandardError(true);
-    
-    // Load the main QML file
-    const QUrl url(QStringLiteral("qrc:/ui/Main.qml"));
-    
-    QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
-                     &app, [url](QObject *obj, const QUrl &objUrl) {
-        if (!obj && url == objUrl) {
-            qCritical() << "Failed to load QML UI";
-            QCoreApplication::exit(-1);
-        }
-    }, Qt::QueuedConnection);
-    
-    engine.load(url);
-    
-    if (engine.rootObjects().isEmpty()) {
-        qWarning() << "No root objects loaded. Running in CLI mode for testing.";
-        
-        // Fallback to backend testing if QML UI is not available
+    // Test CircularBuffer with C++20 concepts
+    {
         qDebug() << "\n[Testing CircularBuffer]";
         CircularBuffer<LogEntry, 10> buffer;
         
@@ -126,6 +83,27 @@ int main(int argc, char *argv[]) {
             return 1;
         }
     }
+    
+    // Test Result type with C++20 concepts
+    {
+        qDebug() << "\n[Testing Result Type]";
+        
+        auto successResult = Result<int>::Ok(42);
+        if (successResult.isOk()) {
+            qDebug() << "Success result value:" << successResult.value();
+        }
+        
+        auto errorResult = Result<int>::Err(QString("Test error"));
+        if (errorResult.isErr()) {
+            qDebug() << "Error result message:" << errorResult.error();
+        }
+    }
+    
+    qDebug() << "\n[Running event loop...]";
+    
+    // Log memory after setup
+    qDebug() << "\n[Memory Usage After Setup]";
+    Memory::MemoryMonitor::logUsage();
     
     return app.exec();
 }

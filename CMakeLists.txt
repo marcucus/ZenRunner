@@ -33,6 +33,24 @@ else()
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# Memory optimization flags
+add_compile_options(
+    $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-fno-exceptions>  # Disable exceptions for smaller binary
+    $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-fdata-sections>  # Enable dead code elimination
+    $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-ffunction-sections>
+)
+
+# Link-time optimizations for memory
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_compile_options(
+        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-flto>  # Link-time optimization
+    )
+    add_link_options(
+        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wl,--gc-sections>  # Remove unused sections
+        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-flto>
+    )
+endif()
+
 # ========================================
 # Layer Definitions
 # ========================================
@@ -46,40 +64,36 @@ endif()
 # located in include/<layer>/ directories.
 # ========================================
 
-# Core Layer sources (to be implemented)
+# Core Layer sources
 set(CORE_SOURCES
+    # Implementations of core interfaces:
     src/core/ProcessManager.cpp
     src/core/Project.cpp
-    # src/core/Workspace.cpp
-    # src/core/JsonParser.cpp
-    # src/core/LogBuffer.cpp
+    src/core/Workspace.cpp
+    src/core/JsonParser.cpp
+    src/core/LogBuffer.cpp
+    src/core/MemoryMonitor.cpp
 )
 
-# Platform Layer sources (to be implemented)
+# Platform Layer sources
 set(PLATFORM_SOURCES
+    # Implementations of platform interfaces:
+    src/platform/PlatformEffect.cpp
     src/platform/NativeEffects.cpp
-    src/platform/GenericNativeEffects.cpp
     src/platform/WindowsNativeEffects.cpp
-    # src/platform/PlatformEffect.cpp
-    # src/platform/SystemTray.cpp
-    # src/platform/NativeNotifications.cpp
-    # src/platform/PlatformUtils.cpp
+    src/platform/GenericNativeEffects.cpp
 )
 
-# Storage Layer sources (to be implemented)
+# Storage Layer sources
 set(STORAGE_SOURCES
     # Implementations of storage interfaces:
-    # src/storage/SettingsManager.cpp
-    # src/storage/ProjectRepository.cpp
-    # src/storage/WorkspaceRepository.cpp
+    src/storage/SettingsManager.cpp
 )
 
-# UI Layer sources (to be implemented)
+# UI Layer sources
 set(UI_SOURCES
     # QML files and view model implementations:
-    # src/ui/LogViewModel.cpp
-    # src/ui/ProjectViewModel.cpp
-    # src/ui/WorkspaceViewModel.cpp
+    src/ui/LogViewModel.cpp
 )
 
 # Factory implementation (to be implemented)
@@ -87,40 +101,14 @@ set(FACTORY_SOURCES
     # src/ApplicationFactory.cpp
 )
 
-# Main executable with UI and backend
-set(SOURCES
+# Main executable
+add_executable(${PROJECT_NAME}
     src/main.cpp
-    src/core/ProcessManager.cpp
-    src/core/Project.cpp
-    src/platform/NativeEffects.cpp
-    src/platform/GenericNativeEffects.cpp
-)
-
-# Platform-specific sources
-if(WIN32)
-    list(APPEND SOURCES src/platform/WindowsNativeEffects.cpp)
-elseif(APPLE)
-    list(APPEND SOURCES src/platform/MacOSNativeEffects.mm)
-endif()
-
-# QML and resource files
-qt_add_executable(${PROJECT_NAME}
-    ${SOURCES}
-)
-
-# Add QML module for the UI
-qt_add_qml_module(${PROJECT_NAME}
-    URI ui
-    VERSION 1.0
-    QML_FILES
-        src/ui/Main.qml
-        src/ui/Dashboard.qml
-        src/ui/LogConsole.qml
-        src/ui/ProjectView.qml
-        src/ui/WorkspaceManager.qml
-        src/ui/components/GlassCard.qml
-        src/ui/components/GlassButton.qml
-    RESOURCE_PREFIX "/ui"
+    ${CORE_SOURCES}
+    ${PLATFORM_SOURCES}
+    ${STORAGE_SOURCES}
+    ${UI_SOURCES}
+#    ${FACTORY_SOURCES}
 )
 
 # Link Qt libraries
@@ -130,21 +118,11 @@ target_link_libraries(ZenRunner PRIVATE
     Qt6::Widgets
 )
 
-# Target properties for performance optimization
+# Target properties
 set_target_properties(${PROJECT_NAME} PROPERTIES
     OUTPUT_NAME "ZenRunner"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
-
-# Enable Link Time Optimization if supported for better performance
-if(LTO_SUPPORTED)
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION TRUE
-    )
-    message(STATUS "Link Time Optimization (LTO) enabled")
-else()
-    message(STATUS "Link Time Optimization (LTO) not supported: ${LTO_ERROR}")
-endif()
 
 # ========================================
 # Platform-specific configurations
