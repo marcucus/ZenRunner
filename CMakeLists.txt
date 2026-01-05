@@ -68,6 +68,7 @@ endif()
 set(CORE_SOURCES
     # Implementations of core interfaces:
     src/core/ProcessManager.cpp
+    include/core/ProcessManager.h
     src/core/Project.cpp
     src/core/Workspace.cpp
     src/core/JsonParser.cpp
@@ -79,6 +80,7 @@ set(CORE_SOURCES
 set(PLATFORM_SOURCES
     # Implementations of platform interfaces:
     src/platform/NativeEffects.cpp
+    include/platform/NativeEffects.h
     src/platform/WindowsNativeEffects.cpp
     src/platform/GenericNativeEffects.cpp
 )
@@ -93,9 +95,11 @@ set(STORAGE_SOURCES
 set(UI_SOURCES
     # QML files and view model implementations:
     src/ui/ILogViewModel.cpp
-    src/ui/IProjectManager.cpp
+    include/ui/ILogViewModel.hpp
     src/ui/LogViewModel.cpp
+    include/ui/IProjectManager.hpp
     src/ui/ProjectManager.cpp
+    src/ui/ProjectManager.h
 )
 
 # Factory implementation (to be implemented)

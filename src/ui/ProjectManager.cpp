@@ -1,11 +1,10 @@
 #include "ProjectManager.h"
-#include "core/Project.h"
 #include <QDebug>
 
 namespace ZenRunner::UI {
 
 ProjectManager::ProjectManager(QObject* parent)
-    : IProjectManager(parent)
+    : QAbstractListModel(parent)
 {
 }
 
