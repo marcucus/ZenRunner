@@ -89,11 +89,20 @@ public:
     virtual size_t getProjectCount() const = 0;
 
     /**
+     * @brief Execution mode for batch operations
+     */
+    enum class ExecutionMode {
+        Parallel,    ///< Start all processes simultaneously
+        Sequential   ///< Start processes one after another
+    };
+
+    /**
      * @brief Start all projects in the workspace
      * @param scriptName Name of script to run on all projects
+     * @param mode Execution mode (parallel or sequential)
      * @return Number of projects successfully started
      */
-    virtual int startAll(const QString& scriptName) = 0;
+    virtual int startAll(const QString& scriptName, ExecutionMode mode = ExecutionMode::Parallel) = 0;
 
     /**
      * @brief Stop all running processes in this workspace

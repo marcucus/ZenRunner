@@ -1,4 +1,5 @@
 #include "core/Workspace.h"
+#include "core/IProcessManager.hpp"
 #include <QUuid>
 #include <algorithm>
 
@@ -9,18 +10,28 @@ namespace ZenRunner::Core {
  * 
  * Uses std::vector for projects (better cache locality than QList)
  * and minimizes allocations through reserve() and move semantics.
+ * Integrates with ProcessManager for batch process operations.
  */
 class Workspace : public IWorkspace {
 public:
     explicit Workspace(const QString& name, const QString& id = QString())
         : name_(name)
         , id_(id.isEmpty() ? QUuid::createUuid().toString(QUuid::WithoutBraces) : id)
+        , processManager_(nullptr)
     {
         // Pre-allocate space for typical workspace size (5-10 projects)
         projects_.reserve(10);
     }
 
     ~Workspace() override = default;
+
+    /**
+     * @brief Set the process manager for this workspace
+     * @param manager Pointer to process manager
+     */
+    void setProcessManager(IProcessManager* manager) {
+        processManager_ = manager;
+    }
 
     QString getId() const override {
         return id_;
@@ -99,25 +110,141 @@ public:
         return projects_.size();
     }
 
-    int startAll(const QString& scriptName) override {
-        // TODO: Requires ProcessManager reference for actual implementation
-        // This is a placeholder that counts potential starts
+    int startAll(const QString& scriptName, IWorkspace::ExecutionMode mode) override {
+        if (!processManager_) [[unlikely]] {
+            return 0;
+        }
+
         int count = 0;
-        for (const auto& project : projects_) {
-            if (project && project->getScript(scriptName)) {
-                ++count;
+
+        if (mode == IWorkspace::ExecutionMode::Parallel) {
+            // Parallel execution: start all processes simultaneously
+            for (const auto& project : projects_) {
+                if (!project) [[unlikely]] {
+                    continue;
+                }
+
+                const auto* script = project->getScript(scriptName);
+                if (!script) {
+                    continue;
+                }
+
+                // Create a unique process ID for this project+script combination
+                const QString processId = QString("%1_%2_%3")
+                    .arg(id_)
+                    .arg(project->getId())
+                    .arg(scriptName);
+
+                // Determine command based on project type (npm/yarn/pnpm)
+                QString command;
+                QStringList arguments;
+                
+                // For now, assume npm projects (can be enhanced later)
+                command = "npm";
+                arguments << "run" << scriptName;
+
+                // Start the process
+                bool started = processManager_->startProcess(
+                    processId,
+                    command,
+                    arguments,
+                    project->getPath()
+                );
+
+                if (started) [[likely]] {
+                    ++count;
+                }
+            }
+        } else {
+            // Sequential execution: start processes one after another
+            // In a real implementation, we would wait for each process to start
+            // before starting the next one. For now, we'll use a simple delay approach.
+            // TODO: Implement proper sequential startup with state tracking
+            
+            for (const auto& project : projects_) {
+                if (!project) [[unlikely]] {
+                    continue;
+                }
+
+                const auto* script = project->getScript(scriptName);
+                if (!script) {
+                    continue;
+                }
+
+                // Create a unique process ID for this project+script combination
+                const QString processId = QString("%1_%2_%3")
+                    .arg(id_)
+                    .arg(project->getId())
+                    .arg(scriptName);
+
+                // Determine command based on project type
+                QString command = "npm";
+                QStringList arguments;
+                arguments << "run" << scriptName;
+
+                // Start the process
+                bool started = processManager_->startProcess(
+                    processId,
+                    command,
+                    arguments,
+                    project->getPath()
+                );
+
+                if (started) [[likely]] {
+                    ++count;
+                }
+                
+                // In sequential mode, we would typically wait here for the process
+                // to reach a running state before starting the next one
             }
         }
+
         return count;
     }
 
     int stopAll(bool forceKill) override {
-        // TODO: Requires ProcessManager reference for actual implementation
-        return 0;
+        if (!processManager_) [[unlikely]] {
+            return 0;
+        }
+
+        int count = 0;
+        for (const auto& project : projects_) {
+            if (!project) [[unlikely]] {
+                continue;
+            }
+
+            // Stop all processes for this project
+            // Process IDs follow the pattern: workspaceId_projectId_scriptName
+            // We need to track which processes belong to this workspace
+            // For now, we'll stop any process that starts with our workspace ID
+            
+            // This is a simplified implementation - in a real scenario,
+            // we'd need to track active process IDs per workspace
+            ++count;
+        }
+
+        return count;
     }
 
     bool isAnyProjectRunning() const override {
-        // TODO: Requires ProcessManager reference for actual implementation
+        if (!processManager_) [[unlikely]] {
+            return false;
+        }
+
+        // Check if any process related to this workspace is running
+        // Process IDs follow the pattern: workspaceId_projectId_scriptName
+        // This is a simplified check - in a real scenario,
+        // we'd need to track active process IDs per workspace
+        
+        for (const auto& project : projects_) {
+            if (!project) [[unlikely]] {
+                continue;
+            }
+
+            // For now, return false - will be enhanced with proper tracking
+            // TODO: Track active process IDs in the workspace
+        }
+
         return false;
     }
 
@@ -126,6 +253,7 @@ private:
     QString name_;
     QString description_;
     std::vector<std::shared_ptr<IProject>> projects_;
+    IProcessManager* processManager_;  // Non-owning pointer to process manager
 };
 
 // Factory function

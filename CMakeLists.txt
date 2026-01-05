@@ -88,12 +88,14 @@ set(PLATFORM_SOURCES
 set(STORAGE_SOURCES
     # Implementations of storage interfaces:
     src/storage/SettingsManager.cpp
+    src/storage/WorkspaceRepository.cpp
 )
 
 # UI Layer sources
 set(UI_SOURCES
     # QML files and view model implementations:
     src/ui/LogViewModel.cpp
+    src/ui/WorkspaceViewModel.cpp
 )
 
 # Factory implementation (to be implemented)
