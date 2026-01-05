@@ -48,9 +48,8 @@ endif()
 
 # Core Layer sources (to be implemented)
 set(CORE_SOURCES
-    # Implementations of core interfaces:
-    # src/core/ProcessManager.cpp
-    # src/core/Project.cpp
+    src/core/ProcessManager.cpp
+    src/core/Project.cpp
     # src/core/Workspace.cpp
     # src/core/JsonParser.cpp
     # src/core/LogBuffer.cpp
@@ -58,7 +57,9 @@ set(CORE_SOURCES
 
 # Platform Layer sources (to be implemented)
 set(PLATFORM_SOURCES
-    # Implementations of platform interfaces:
+    src/platform/NativeEffects.cpp
+    src/platform/GenericNativeEffects.cpp
+    src/platform/WindowsNativeEffects.cpp
     # src/platform/PlatformEffect.cpp
     # src/platform/SystemTray.cpp
     # src/platform/NativeNotifications.cpp
@@ -123,7 +124,7 @@ qt_add_qml_module(${PROJECT_NAME}
 )
 
 # Link Qt libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(ZenRunner PRIVATE
     Qt6::Core
     Qt6::Quick
     Qt6::Widgets
@@ -166,7 +167,8 @@ endif()
 
 if(UNIX AND NOT APPLE)
     # Linux-specific settings
-    target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_LINUX)
+    target_compile_definitions(ZenRunner PRIVATE ZENRUNNER_LINUX)
+    target_compile_definitions(test_signal_latency PRIVATE ZENRUNNER_LINUX)
 endif()
 
 # ========================================

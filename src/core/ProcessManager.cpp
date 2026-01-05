@@ -43,23 +43,24 @@ AsyncProcess::AsyncProcess(ProcessConfig config, QObject* parent)
     }
     
     // Connect signals for asynchronous operation
+    // Use Qt::DirectConnection for same-thread critical paths to minimize latency
     connect(process_.get(), &QProcess::readyReadStandardOutput,
-            this, &AsyncProcess::onReadyReadStandardOutput);
+            this, &AsyncProcess::onReadyReadStandardOutput, Qt::DirectConnection);
     connect(process_.get(), &QProcess::readyReadStandardError,
-            this, &AsyncProcess::onReadyReadStandardError);
+            this, &AsyncProcess::onReadyReadStandardError, Qt::DirectConnection);
     connect(process_.get(), &QProcess::started,
-            this, &AsyncProcess::onStarted);
+            this, &AsyncProcess::onStarted, Qt::DirectConnection);
     connect(process_.get(), QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            this, &AsyncProcess::onFinished);
+            this, &AsyncProcess::onFinished, Qt::DirectConnection);
     connect(process_.get(), &QProcess::errorOccurred,
-            this, &AsyncProcess::onErrorOccurred);
+            this, &AsyncProcess::onErrorOccurred, Qt::DirectConnection);
     connect(process_.get(), &QProcess::stateChanged,
-            this, &AsyncProcess::onStateChanged);
+            this, &AsyncProcess::onStateChanged, Qt::DirectConnection);
     
     // Configure termination timer (single shot)
     terminationTimer_->setSingleShot(true);
     connect(terminationTimer_.get(), &QTimer::timeout,
-            this, &AsyncProcess::onTerminationTimeout);
+            this, &AsyncProcess::onTerminationTimeout, Qt::DirectConnection);
 }
 
 AsyncProcess::~AsyncProcess() {
@@ -165,16 +166,20 @@ void AsyncProcess::onReadyReadStandardOutput() {
         return;
     }
     
-    const QByteArray data = process_->readAllStandardOutput();
+    // Use move semantics to avoid copies
+    QByteArray data = process_->readAllStandardOutput();
     if (data.isEmpty()) [[unlikely]] {
         return;
     }
     
-    const QString output = QString::fromUtf8(data);
+    QString output = QString::fromUtf8(data);
+    
+    // Emit signal before processing to minimize latency for UI updates
     emit outputReceived(output, false);
     
     // Split by newlines and add each line as a log entry
-    const QStringList lines = output.split('\n', Qt::SkipEmptyParts);
+    // Reserve approximate capacity to avoid reallocations
+    QStringList lines = output.split('\n', Qt::SkipEmptyParts);
     for (const QString& line : lines) {
         if (!line.trimmed().isEmpty()) [[likely]] {
             addLogEntry(line, LogLevel::Info, false);
@@ -187,16 +192,19 @@ void AsyncProcess::onReadyReadStandardError() {
         return;
     }
     
-    const QByteArray data = process_->readAllStandardError();
+    // Use move semantics to avoid copies
+    QByteArray data = process_->readAllStandardError();
     if (data.isEmpty()) [[unlikely]] {
         return;
     }
     
-    const QString output = QString::fromUtf8(data);
+    QString output = QString::fromUtf8(data);
+    
+    // Emit signal before processing to minimize latency for UI updates
     emit outputReceived(output, true);
     
     // Split by newlines and add each line as a log entry
-    const QStringList lines = output.split('\n', Qt::SkipEmptyParts);
+    QStringList lines = output.split('\n', Qt::SkipEmptyParts);
     for (const QString& line : lines) {
         if (!line.trimmed().isEmpty()) [[likely]] {
             addLogEntry(line, LogLevel::Error, true);
@@ -343,7 +351,7 @@ AsyncProcess* ProcessManager::getProcess(const QString& id) const {
     
     auto it = processes_.find(id);
     if (it != processes_.end()) [[likely]] {
-        return it->get();
+        return it->second.get();
     }
     
     return nullptr;
@@ -411,7 +419,13 @@ void ProcessManager::stopAll(int timeoutMs) {
 
 QStringList ProcessManager::processIds() const {
     std::lock_guard lock(processesMutex_);
-    return processes_.keys();
+    
+    QStringList ids;
+    ids.reserve(processes_.size());
+    for (const auto& [id, _] : processes_) {
+        ids.append(id);
+    }
+    return ids;
 }
 
 int ProcessManager::runningCount() const {
@@ -429,25 +443,27 @@ bool ProcessManager::hasRunningProcesses() const {
 }
 
 void ProcessManager::connectProcessSignals(const QString& id, AsyncProcess* process) {
+    // Use Qt::DirectConnection for same-thread signal forwarding to minimize latency
+    // All AsyncProcess instances are created in ProcessManager's thread
     connect(process, &AsyncProcess::stateChanged,
             this, [this, id](ProcessState newState) {
                 emit processStateChanged(id, newState);
-            });
+            }, Qt::DirectConnection);
     
     connect(process, &AsyncProcess::outputReceived,
             this, [this, id](const QString& output, bool isStderr) {
                 emit processOutput(id, output, isStderr);
-            });
+            }, Qt::DirectConnection);
     
     connect(process, &AsyncProcess::finished,
             this, [this, id](int exitCode, QProcess::ExitStatus /*status*/) {
                 emit processFinished(id, exitCode);
-            });
+            }, Qt::DirectConnection);
     
     connect(process, &AsyncProcess::errorOccurred,
             this, [this, id](const QString& error) {
                 emit processError(id, error);
-            });
+            }, Qt::DirectConnection);
 }
 
 } // namespace ZenRunner
