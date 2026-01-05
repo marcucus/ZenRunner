@@ -1,4 +1,4 @@
-#include "storage/SettingsManager.h"
+#include "SettingsManager.h"
 #include <QSettings>
 #include <QCoreApplication>
 

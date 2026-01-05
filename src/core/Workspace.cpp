@@ -1,4 +1,4 @@
-#include "core/Workspace.h"
+#include "Workspace.h"
 #include <QUuid>
 #include <algorithm>
 

@@ -1,4 +1,5 @@
-#include "core/JsonParser.h"
+#include "JsonParser.h"
+#include "core/IWorkspace.hpp"
 #include <QFile>
 #include <QJsonArray>
 #include <QFileInfo>
@@ -139,7 +140,11 @@ public:
         QJsonObject scriptsObj;
         const auto scripts = project.getScripts();
         for (auto it = scripts.constBegin(); it != scripts.constEnd(); ++it) {
-            scriptsObj[it.key()] = it.value();
+            QJsonObject scriptObj;
+            scriptObj["name"] = it.value().name;
+            scriptObj["command"] = it.value().command;
+            scriptObj["isPinned"] = it.value().isPinned;
+            scriptsObj[it.key()] = scriptObj;
         }
         obj["scripts"] = scriptsObj;
         

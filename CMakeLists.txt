@@ -78,7 +78,6 @@ set(CORE_SOURCES
 # Platform Layer sources
 set(PLATFORM_SOURCES
     # Implementations of platform interfaces:
-    src/platform/PlatformEffect.cpp
     src/platform/NativeEffects.cpp
     src/platform/WindowsNativeEffects.cpp
     src/platform/GenericNativeEffects.cpp
@@ -93,7 +92,10 @@ set(STORAGE_SOURCES
 # UI Layer sources
 set(UI_SOURCES
     # QML files and view model implementations:
+    src/ui/ILogViewModel.cpp
+    src/ui/IProjectManager.cpp
     src/ui/LogViewModel.cpp
+    src/ui/ProjectManager.cpp
 )
 
 # Factory implementation (to be implemented)
@@ -109,6 +111,7 @@ add_executable(${PROJECT_NAME}
     ${STORAGE_SOURCES}
     ${UI_SOURCES}
 #    ${FACTORY_SOURCES}
+    src/ui/resources.qrc
 )
 
 # Link Qt libraries
@@ -145,8 +148,7 @@ endif()
 
 if(UNIX AND NOT APPLE)
     # Linux-specific settings
-    target_compile_definitions(ZenRunner PRIVATE ZENRUNNER_LINUX)
-    target_compile_definitions(test_signal_latency PRIVATE ZENRUNNER_LINUX)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_LINUX)
 endif()
 
 # ========================================
