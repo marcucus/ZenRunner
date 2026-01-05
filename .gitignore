@@ -78,3 +78,8 @@ _codeql_build_dir/
 # Package managers
 conan.lock
 vcpkg_installed/
+
+# Test executables
+test_circular_buffer_standalone
+test_circular_buffer
+test_signal_latency

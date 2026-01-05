@@ -57,9 +57,24 @@ Public APIs and shared definitions:
 - ⚡ **Ultra-lightweight**: < 30MB RAM usage
 - 🎨 **Native UI**: Glassmorphism with OS-specific materials (Mica/Vibrancy)
 - 📦 **Smart Detection**: Automatic package.json script discovery
-- 🔄 **Workspace Management**: Group and control multiple projects
+- 🗂️ **Workspace Management**: Group projects and launch with batch actions (sequential/parallel)
+- 🔄 **Process Control**: Start, stop, and monitor multiple development processes
 - 📊 **Live Logs**: ANSI color support with circular buffering
 - 🌐 **System Integration**: Tray icon, notifications, native effects
+
+## Workspace System
+
+ZenRunner includes a powerful workspace system for managing multiple projects as a unit:
+
+- **Group related projects** (Frontend, Backend, Database, Tools)
+- **One-click batch actions**: Start all projects with a single button
+- **Execution modes**: 
+  - **Parallel**: Start all projects simultaneously for maximum speed
+  - **Sequential**: Start projects in order when there are dependencies
+- **Visual organization**: Color-coded workspaces with status indicators
+- **Persistent storage**: Workspaces are saved automatically
+
+See [Workspace Guide](docs/WORKSPACE_GUIDE.md) for detailed documentation.
 
 ## Technology Stack
 

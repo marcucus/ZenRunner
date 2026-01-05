@@ -89,6 +89,7 @@ set(PLATFORM_SOURCES
 set(STORAGE_SOURCES
     # Implementations of storage interfaces:
     src/storage/SettingsManager.cpp
+    src/storage/WorkspaceRepository.cpp
 )
 
 # UI Layer sources
@@ -114,6 +115,7 @@ add_executable(${PROJECT_NAME}
     ${PLATFORM_SOURCES}
     ${STORAGE_SOURCES}
     ${UI_SOURCES}
+    ${QML_RESOURCES}
 #    ${FACTORY_SOURCES}
     src/ui/resources.qrc
 )
@@ -128,6 +130,25 @@ target_link_libraries(ZenRunner PRIVATE
 # Target properties
 set_target_properties(${PROJECT_NAME} PROPERTIES
     OUTPUT_NAME "ZenRunner"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+# ========================================
+# Test Executables
+# ========================================
+
+# Circular Buffer Test
+add_executable(test_circular_buffer
+    src/test_circular_buffer.cpp
+    src/core/LogBuffer.cpp
+)
+
+target_link_libraries(test_circular_buffer PRIVATE
+    Qt6::Core
+)
+
+set_target_properties(test_circular_buffer PROPERTIES
+    OUTPUT_NAME "test_circular_buffer"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 

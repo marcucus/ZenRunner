@@ -258,47 +258,13 @@ Item {
                 spacing: 20
                 
                 // Workspaces panel
-                GlassCard {
+                WorkspaceManager {
+                    id: workspaceManagerPanel
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 300
+                    Layout.fillHeight: true
                     
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: 12
-                        
-                        Text {
-                            text: "Workspaces"
-                            font.pixelSize: 16
-                            font.weight: Font.DemiBold
-                            color: "#ffffff"
-                        }
-                        
-                        Rectangle {
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            radius: 8
-                            color: Qt.rgba(0, 0, 0, 0.2)
-                            
-                            Column {
-                                anchors.centerIn: parent
-                                spacing: 8
-                                
-                                Text {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    text: "🗂️"
-                                    font.pixelSize: 32
-                                    opacity: 0.3
-                                }
-                                
-                                Text {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    text: "No workspaces"
-                                    font.pixelSize: 12
-                                    color: "#666666"
-                                }
-                            }
-                        }
-                    }
+                    // This property will be set from C++ (main.cpp)
+                    // workspaceViewModel: workspaceViewModelInstance
                 }
                 
                 // System status panel

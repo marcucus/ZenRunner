@@ -1,12 +1,40 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 import "./components"
 
 // Workspace management interface for grouping and controlling projects
 GlassCard {
     id: workspaceManager
     
-    property var workspaces: []
+    // Property to hold the workspace view model (set from C++)
+    property var workspaceViewModel: null
+    
+    // Dialog for creating/editing workspaces
+    WorkspaceDialog {
+        id: workspaceDialog
+        
+        onAccepted: {
+            if (workspaceDialog.isEditMode) {
+                // Update existing workspace
+                if (workspaceViewModel) {
+                    workspaceViewModel.updateWorkspace(
+                        workspaceDialog.workspaceId,
+                        workspaceDialog.workspaceName,
+                        workspaceDialog.workspaceDescription
+                    )
+                }
+            } else {
+                // Create new workspace
+                if (workspaceViewModel) {
+                    workspaceViewModel.createWorkspace(
+                        workspaceDialog.workspaceName,
+                        workspaceDialog.workspaceDescription
+                    )
+                }
+            }
+        }
+    }
     
     ColumnLayout {
         anchors.fill: parent
@@ -30,6 +58,10 @@ GlassCard {
                 text: "+ Create Workspace"
                 accentColor: "#7c4dff"
                 width: 160
+                onClicked: {
+                    workspaceDialog.resetForNew()
+                    workspaceDialog.open()
+                }
             }
         }
         
@@ -41,31 +73,12 @@ GlassCard {
             spacing: 12
             clip: true
             
-            // Placeholder model
-            model: ListModel {
-                ListElement {
-                    name: "Full Stack Development"
-                    projectCount: 3
-                    isRunning: true
-                    color: "#4a90e2"
-                }
-                ListElement {
-                    name: "Microservices"
-                    projectCount: 5
-                    isRunning: false
-                    color: "#9b59b6"
-                }
-                ListElement {
-                    name: "Frontend Only"
-                    projectCount: 1
-                    isRunning: false
-                    color: "#16a085"
-                }
-            }
+            // Use the workspace view model
+            model: workspaceViewModel
             
             delegate: GlassCard {
                 width: workspaceList.width
-                height: 120
+                height: 140
                 glassOpacity: mouseArea.containsMouse ? 0.2 : 0.15
                 
                 ColumnLayout {
@@ -93,7 +106,7 @@ GlassCard {
                             
                             Text {
                                 anchors.centerIn: parent
-                                text: model.name.charAt(0)
+                                text: model.name ? model.name.charAt(0).toUpperCase() : "?"
                                 font.pixelSize: 18
                                 font.weight: Font.Bold
                                 color: model.color
@@ -113,10 +126,18 @@ GlassCard {
                             }
                             
                             Text {
+                                text: model.description || "No description"
+                                font.pixelSize: 11
+                                color: "#888888"
+                                elide: Text.ElideRight
+                                maximumLineCount: 1
+                            }
+                            
+                            Text {
                                 text: model.projectCount + " project" + 
                                       (model.projectCount !== 1 ? "s" : "")
                                 font.pixelSize: 12
-                                color: "#888888"
+                                color: "#666666"
                             }
                         }
                         
@@ -160,6 +181,19 @@ GlassCard {
                             accentColor: model.isRunning ? "#e74c3c" : "#4ade80"
                             Layout.fillWidth: true
                             implicitHeight: 32
+                            onClicked: {
+                                if (model.isRunning) {
+                                    // Stop all processes in workspace
+                                    if (workspaceViewModel) {
+                                        workspaceViewModel.stopAllProjects(model.workspaceId, false)
+                                    }
+                                } else {
+                                    // Start all processes in workspace (parallel by default)
+                                    if (workspaceViewModel) {
+                                        workspaceViewModel.startAllProjects(model.workspaceId, "dev", true)
+                                    }
+                                }
+                            }
                         }
                         
                         GlassButton {
@@ -167,13 +201,70 @@ GlassCard {
                             width: 40
                             implicitHeight: 32
                             accentColor: "#95a5a6"
+                            onClicked: {
+                                // Open edit dialog
+                                workspaceDialog.loadWorkspace(
+                                    model.workspaceId,
+                                    model.name,
+                                    model.description
+                                )
+                                workspaceDialog.open()
+                            }
                         }
                         
                         GlassButton {
-                            text: "📊"
+                            text: "🗑️"
                             width: 40
                             implicitHeight: 32
+                            accentColor: "#e74c3c"
+                            onClicked: {
+                                // Delete workspace (with confirmation)
+                                deleteConfirmDialog.workspaceId = model.workspaceId
+                                deleteConfirmDialog.workspaceName = model.name
+                                deleteConfirmDialog.open()
+                            }
+                        }
+                    }
+                    
+                    // Execution mode selector (shown when hovering)
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        visible: mouseArea.containsMouse && !model.isRunning
+                        opacity: visible ? 1.0 : 0.0
+                        
+                        Behavior on opacity {
+                            NumberAnimation { duration: 200 }
+                        }
+                        
+                        Text {
+                            text: "Execution:"
+                            font.pixelSize: 10
+                            color: "#888888"
+                        }
+                        
+                        GlassButton {
+                            text: "⚡ Parallel"
+                            Layout.fillWidth: true
+                            implicitHeight: 24
                             accentColor: "#3498db"
+                            onClicked: {
+                                if (workspaceViewModel) {
+                                    workspaceViewModel.startAllProjects(model.workspaceId, "dev", true)
+                                }
+                            }
+                        }
+                        
+                        GlassButton {
+                            text: "➡️ Sequential"
+                            Layout.fillWidth: true
+                            implicitHeight: 24
+                            accentColor: "#9b59b6"
+                            onClicked: {
+                                if (workspaceViewModel) {
+                                    workspaceViewModel.startAllProjects(model.workspaceId, "dev", false)
+                                }
+                            }
                         }
                     }
                 }
@@ -226,8 +317,61 @@ GlassCard {
                         accentColor: "#7c4dff"
                         width: 240
                         height: 40
+                        onClicked: {
+                            workspaceDialog.resetForNew()
+                            workspaceDialog.open()
+                        }
                     }
                 }
+            }
+        }
+    }
+    
+    // Delete confirmation dialog
+    Dialog {
+        id: deleteConfirmDialog
+        
+        property string workspaceId: ""
+        property string workspaceName: ""
+        
+        title: "Delete Workspace"
+        modal: true
+        standardButtons: Dialog.Yes | Dialog.No
+        
+        width: 400
+        anchors.centerIn: parent
+        
+        background: Rectangle {
+            color: Qt.rgba(0.1, 0.1, 0.15, 0.95)
+            border.color: Qt.rgba(1, 1, 1, 0.1)
+            border.width: 1
+            radius: 12
+        }
+        
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 16
+            
+            Text {
+                Layout.fillWidth: true
+                text: "Are you sure you want to delete workspace \"" + deleteConfirmDialog.workspaceName + "\"?"
+                font.pixelSize: 14
+                color: "#ffffff"
+                wrapMode: Text.WordWrap
+            }
+            
+            Text {
+                Layout.fillWidth: true
+                text: "⚠️ This action cannot be undone. All workspace settings will be lost, but projects will remain intact."
+                font.pixelSize: 12
+                color: "#f39c12"
+                wrapMode: Text.WordWrap
+            }
+        }
+        
+        onAccepted: {
+            if (workspaceViewModel) {
+                workspaceViewModel.deleteWorkspace(deleteConfirmDialog.workspaceId)
             }
         }
     }
