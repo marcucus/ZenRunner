@@ -71,6 +71,9 @@ tmp/
 temp/
 *.tmp
 
+# CodeQL
+_codeql_detected_source_root
+
 # Package managers
 conan.lock
 vcpkg_installed/
