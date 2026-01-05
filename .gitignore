@@ -1,0 +1,76 @@
+# C++ Build artifacts
+*.o
+*.obj
+*.exe
+*.out
+*.app
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# Qt specific
+*.pro.user
+*.pro.user.*
+*.qmlc
+*.jsc
+*.qm
+.qmake.cache
+.qmake.stash
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+build/
+build-*/
+cmake-build-*/
+.cmake/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Qt Creator
+*.autosave
+*.user
+*.user.*
+
+# Build directories
+bin/
+lib/
+debug/
+release/
+Debug/
+Release/
+x64/
+x86/
+
+# Dependencies
+node_modules/
+.npm/
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Package managers
+conan.lock
+vcpkg_installed/
