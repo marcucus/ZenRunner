@@ -3,6 +3,7 @@
 #include <QString>
 #include <QStringList>
 #include <QVariant>
+#include <QProcessEnvironment>
 #include <concepts>
 #include <optional>
 #include <memory>

@@ -12,6 +12,7 @@
 #include <memory>
 #include <functional>
 #include <concepts>
+#include <unordered_map>
 
 namespace ZenRunner {
 
@@ -258,7 +259,7 @@ signals:
 private:
     void connectProcessSignals(const QString& id, AsyncProcess* process);
 
-    QMap<QString, std::unique_ptr<AsyncProcess>> processes_;
+    std::unordered_map<QString, std::unique_ptr<AsyncProcess>> processes_;
     mutable std::mutex processesMutex_;
 };
 
