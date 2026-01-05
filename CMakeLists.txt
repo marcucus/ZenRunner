@@ -23,7 +23,8 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 
 # Source files will be added as modules are implemented
 set(CORE_SOURCES
-    # src/core/*.cpp files will be added here
+    src/core/ProcessManager.cpp
+    src/core/Project.cpp
 )
 
 set(PLATFORM_SOURCES
@@ -35,18 +36,18 @@ set(UI_SOURCES
 )
 
 # Main executable (to be configured)
-# add_executable(${PROJECT_NAME}
-#     src/main.cpp
-#     ${CORE_SOURCES}
-#     ${PLATFORM_SOURCES}
-# )
+add_executable(${PROJECT_NAME}
+    src/main.cpp
+    ${CORE_SOURCES}
+    ${PLATFORM_SOURCES}
+)
 
 # Link Qt libraries
-# target_link_libraries(${PROJECT_NAME} PRIVATE
-#     Qt6::Core
-#     Qt6::Quick
-#     Qt6::Widgets
-# )
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    Qt6::Core
+    Qt6::Quick
+    Qt6::Widgets
+)
 
 # Platform-specific configurations
 if(WIN32)
