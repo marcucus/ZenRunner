@@ -268,6 +268,12 @@ std::shared_ptr<Core::IWorkspace> WorkspaceRepository::workspaceFromJson(const Q
     // Load projects
     const QJsonArray projectsArray = json["projects"].toArray();
     
+    // NOTE: Project loading is incomplete in current implementation
+    // This is a known limitation that will be addressed when IProjectRepository is fully integrated
+    // For now, workspaces will be created but won't contain their projects until
+    // the project repository integration is completed
+    // TODO: Load actual project objects from IProjectRepository
+    
     for (const QJsonValue& projectValue : projectsArray) {
         if (!projectValue.isObject()) [[unlikely]] {
             continue;
@@ -277,9 +283,11 @@ std::shared_ptr<Core::IWorkspace> WorkspaceRepository::workspaceFromJson(const Q
         const QString projectId = projectObj["id"].toString();
         const QString projectPath = projectObj["path"].toString();
         
-        // Note: We need to load the actual project from the project repository
-        // For now, we'll skip this and just store the reference
-        // TODO: Integrate with IProjectRepository to load actual projects
+        // When IProjectRepository is available:
+        // 1. Load project from repository by ID
+        // 2. If not found, try to reload from path
+        // 3. Add loaded project to workspace
+        qDebug() << "TODO: Load project" << projectId << "from path" << projectPath;
     }
     
     return workspace;

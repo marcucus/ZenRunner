@@ -27,12 +27,6 @@ Dialog {
         border.color: Qt.rgba(1, 1, 1, 0.1)
         border.width: 1
         radius: 12
-        
-        // Subtle glow effect
-        layer.enabled: true
-        layer.effect: ShaderEffect {
-            fragmentShader: "qrc:/ui/shaders/glow.frag"
-        }
     }
     
     ColumnLayout {

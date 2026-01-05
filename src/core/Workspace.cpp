@@ -208,19 +208,34 @@ public:
         }
 
         int count = 0;
+        
+        // Stop all processes related to this workspace
+        // Process IDs follow the pattern: workspaceId_projectId_scriptName
         for (const auto& project : projects_) {
             if (!project) [[unlikely]] {
                 continue;
             }
 
-            // Stop all processes for this project
-            // Process IDs follow the pattern: workspaceId_projectId_scriptName
-            // We need to track which processes belong to this workspace
-            // For now, we'll stop any process that starts with our workspace ID
+            // For each project, we need to stop all its running processes
+            // Since we don't track active process IDs yet, this is a simplified version
+            // TODO: Maintain a list of active process IDs per workspace
             
-            // This is a simplified implementation - in a real scenario,
-            // we'd need to track active process IDs per workspace
-            ++count;
+            // Try to stop processes that might exist for this project
+            const auto scripts = project->getScripts();
+            for (const auto& [scriptName, script] : scripts) {
+                const QString processId = QString("%1_%2_%3")
+                    .arg(id_)
+                    .arg(project->getId())
+                    .arg(scriptName);
+                
+                // Check if process exists and stop it
+                if (processManager_->isProcessRunning(processId)) [[unlikely]] {
+                    bool stopped = processManager_->stopProcess(processId, forceKill);
+                    if (stopped) [[likely]] {
+                        ++count;
+                    }
+                }
+            }
         }
 
         return count;
@@ -233,16 +248,23 @@ public:
 
         // Check if any process related to this workspace is running
         // Process IDs follow the pattern: workspaceId_projectId_scriptName
-        // This is a simplified check - in a real scenario,
-        // we'd need to track active process IDs per workspace
-        
         for (const auto& project : projects_) {
             if (!project) [[unlikely]] {
                 continue;
             }
 
-            // For now, return false - will be enhanced with proper tracking
-            // TODO: Track active process IDs in the workspace
+            // Check all possible process IDs for this project
+            const auto scripts = project->getScripts();
+            for (const auto& [scriptName, script] : scripts) {
+                const QString processId = QString("%1_%2_%3")
+                    .arg(id_)
+                    .arg(project->getId())
+                    .arg(scriptName);
+                
+                if (processManager_->isProcessRunning(processId)) [[unlikely]] {
+                    return true;
+                }
+            }
         }
 
         return false;

@@ -80,9 +80,7 @@ void WorkspaceViewModel::loadWorkspaces() {
     if (processManager_) [[likely]] {
         for (auto& workspace : workspaces_) {
             if (workspace) [[likely]] {
-                // We need to cast to the concrete type to call setProcessManager
-                // This is a limitation of the interface design
-                // TODO: Add setProcessManager to IWorkspace interface
+                workspace->setProcessManager(processManager_);
             }
         }
     }
@@ -106,6 +104,11 @@ bool WorkspaceViewModel::createWorkspace(const QString& name, const QString& des
     // Create new workspace
     auto workspace = Core::createWorkspace(name);
     workspace->setDescription(description);
+    
+    // Set process manager if available
+    if (processManager_) [[likely]] {
+        workspace->setProcessManager(processManager_);
+    }
 
     // Save to repository
     if (!repository_->saveWorkspace(*workspace)) [[unlikely]] {

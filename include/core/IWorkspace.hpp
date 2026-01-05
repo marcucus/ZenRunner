@@ -8,6 +8,9 @@
 
 namespace ZenRunner::Core {
 
+// Forward declaration
+class IProcessManager;
+
 /**
  * @brief Interface for workspace management
  * 
@@ -47,6 +50,12 @@ public:
      * @param description New description
      */
     virtual void setDescription(const QString& description) = 0;
+
+    /**
+     * @brief Set the process manager for this workspace
+     * @param manager Pointer to process manager (non-owning)
+     */
+    virtual void setProcessManager(IProcessManager* manager) = 0;
 
     /**
      * @brief Add a project to this workspace

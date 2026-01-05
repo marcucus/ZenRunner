@@ -43,7 +43,9 @@ int main(int argc, char *argv[]) {
     // Initialize UI view models
     UI::WorkspaceViewModel workspaceViewModel;
     workspaceViewModel.setRepository(&workspaceRepository);
-    workspaceViewModel.setProcessManager(reinterpret_cast<Core::IProcessManager*>(&processManager));
+    // Note: ProcessManager needs to implement Core::IProcessManager interface
+    // For now, we'll use dynamic_cast which is safer
+    workspaceViewModel.setProcessManager(dynamic_cast<Core::IProcessManager*>(&processManager));
     qDebug() << "[WorkspaceViewModel] Initialized";
     
     // Load existing workspaces
