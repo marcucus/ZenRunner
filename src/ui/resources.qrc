@@ -7,6 +7,7 @@
         <file>ProjectView.qml</file>
         <file>LogConsole.qml</file>
         <file>WorkspaceManager.qml</file>
+        <file>WorkspaceDialog.qml</file>
         
         <!-- Reusable components -->
         <file>components/GlassCard.qml</file>

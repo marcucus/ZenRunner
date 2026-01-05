@@ -88,12 +88,19 @@ set(PLATFORM_SOURCES
 set(STORAGE_SOURCES
     # Implementations of storage interfaces:
     src/storage/SettingsManager.cpp
+    src/storage/WorkspaceRepository.cpp
 )
 
 # UI Layer sources
 set(UI_SOURCES
     # QML files and view model implementations:
     src/ui/LogViewModel.cpp
+    src/ui/WorkspaceViewModel.cpp
+)
+
+# QML resources
+set(QML_RESOURCES
+    src/ui/resources.qrc
 )
 
 # Factory implementation (to be implemented)
@@ -108,6 +115,7 @@ add_executable(${PROJECT_NAME}
     ${PLATFORM_SOURCES}
     ${STORAGE_SOURCES}
     ${UI_SOURCES}
+    ${QML_RESOURCES}
 #    ${FACTORY_SOURCES}
 )
 
