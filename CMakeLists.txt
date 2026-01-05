@@ -154,6 +154,44 @@ set_target_properties(test_circular_buffer PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
+# ProjectRepository Test
+add_executable(test_project_repository
+    src/test_project_repository.cpp
+    src/storage/ProjectRepository.cpp
+    src/core/Project.cpp
+    src/core/JsonParser.cpp
+)
+
+target_link_libraries(test_project_repository PRIVATE
+    Qt6::Core
+)
+
+set_target_properties(test_project_repository PROPERTIES
+    OUTPUT_NAME "test_project_repository"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+# ApplicationStateManager Test
+add_executable(test_application_state
+    src/test_application_state.cpp
+    src/storage/ApplicationStateManager.cpp
+    src/storage/SettingsManager.cpp
+    src/storage/WorkspaceRepository.cpp
+    src/storage/ProjectRepository.cpp
+    src/core/Workspace.cpp
+    src/core/Project.cpp
+    src/core/JsonParser.cpp
+)
+
+target_link_libraries(test_application_state PRIVATE
+    Qt6::Core
+)
+
+set_target_properties(test_application_state PROPERTIES
+    OUTPUT_NAME "test_application_state"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
 # ========================================
 # Platform-specific configurations
 # ========================================

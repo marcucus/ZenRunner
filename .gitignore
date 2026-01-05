@@ -83,3 +83,5 @@ vcpkg_installed/
 test_circular_buffer_standalone
 test_circular_buffer
 test_signal_latency
+test_project_repository
+test_application_state
