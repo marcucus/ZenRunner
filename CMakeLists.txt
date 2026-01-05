@@ -99,7 +99,7 @@ set(UI_SOURCES
     src/ui/LogViewModel.cpp
     include/ui/IProjectManager.hpp
     src/ui/ProjectManager.cpp
-    src/ui/ProjectManager.h
+    include/ui/ProjectManager.h
 )
 
 # Factory implementation (to be implemented)

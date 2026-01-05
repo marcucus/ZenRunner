@@ -1,4 +1,5 @@
-#include "ProjectManager.h"
+#include "ui/ProjectManager.h"
+#include "core/Project.h"
 #include <QDebug>
 
 namespace ZenRunner::UI {
