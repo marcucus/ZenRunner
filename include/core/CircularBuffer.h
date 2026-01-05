@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <atomic>
 #include <mutex>
 #include <optional>
 #include <concepts>
@@ -147,23 +146,28 @@ public:
 
     /**
      * @brief Get the current number of elements in the buffer
+     * 
+     * Note: Uses mutex for consistency with head_/tail_ positions
      */
     [[nodiscard]] std::size_t size() const noexcept {
-        return size_.load(std::memory_order_relaxed);
+        std::lock_guard lock(mutex_);
+        return size_;
     }
 
     /**
      * @brief Check if the buffer is empty
      */
     [[nodiscard]] bool empty() const noexcept {
-        return size_.load(std::memory_order_relaxed) == 0;
+        std::lock_guard lock(mutex_);
+        return size_ == 0;
     }
 
     /**
      * @brief Check if the buffer is full
      */
     [[nodiscard]] bool full() const noexcept {
-        return size_.load(std::memory_order_relaxed) == Capacity;
+        std::lock_guard lock(mutex_);
+        return size_ == Capacity;
     }
 
     /**
@@ -195,7 +199,7 @@ private:
     std::array<T, Capacity> buffer_;
     std::size_t head_;
     std::size_t tail_;
-    std::atomic<std::size_t> size_;
+    std::size_t size_;
     mutable std::mutex mutex_;
 };
 

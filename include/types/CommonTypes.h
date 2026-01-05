@@ -70,10 +70,22 @@ public:
     [[nodiscard]] bool isOk() const noexcept { return is_ok_; }
     [[nodiscard]] bool isErr() const noexcept { return !is_ok_; }
 
+    /**
+     * @brief Get the success value
+     * 
+     * @warning Precondition: isOk() must be true, otherwise throws std::bad_optional_access
+     * @note Always check isOk() before calling this method
+     */
     [[nodiscard]] T& value() & { return value_.value(); }
     [[nodiscard]] const T& value() const & { return value_.value(); }
     [[nodiscard]] T&& value() && { return std::move(value_.value()); }
 
+    /**
+     * @brief Get the error value
+     * 
+     * @warning Precondition: isErr() must be true, otherwise throws std::bad_optional_access
+     * @note Always check isErr() before calling this method
+     */
     [[nodiscard]] E& error() & { return error_.value(); }
     [[nodiscard]] const E& error() const & { return error_.value(); }
     [[nodiscard]] E&& error() && { return std::move(error_.value()); }

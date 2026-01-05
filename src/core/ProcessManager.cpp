@@ -63,11 +63,17 @@ AsyncProcess::AsyncProcess(ProcessConfig config, QObject* parent)
 }
 
 AsyncProcess::~AsyncProcess() {
+    // Non-blocking termination - send termination signal but don't wait
     if (process_ && process_->state() != QProcess::NotRunning) [[unlikely]] {
+        // Disconnect signals to prevent callbacks during destruction
+        process_->disconnect();
+        
+        // Send termination signal - the process will be killed by OS cleanup
         process_->terminate();
-        if (!process_->waitForFinished(3000)) {
-            process_->kill();
-        }
+        
+        // Note: We intentionally don't wait here to avoid blocking.
+        // The OS will clean up the process. If immediate cleanup is needed,
+        // call stop() explicitly before destroying the object.
     }
 }
 
@@ -128,6 +134,13 @@ void AsyncProcess::resume() {
 void AsyncProcess::writeInput(const QString& data) {
     if (state_ == ProcessState::Running) [[likely]] {
         process_->write(data.toUtf8());
+    }
+}
+
+void AsyncProcess::forceKillImmediate() {
+    // Non-blocking immediate kill - no waiting
+    if (process_ && process_->state() != QProcess::NotRunning) {
+        process_->kill();
     }
 }
 
@@ -289,7 +302,17 @@ ProcessManager::ProcessManager(QObject* parent)
 }
 
 ProcessManager::~ProcessManager() {
-    stopAll(3000);
+    // Non-blocking cleanup: force kill all running processes immediately
+    std::lock_guard lock(processesMutex_);
+    
+    for (auto& [id, process] : processes_) {
+        if (process->state() == ProcessState::Running ||
+            process->state() == ProcessState::Paused) {
+            // Direct kill without waiting - non-blocking
+            process->forceKillImmediate();
+        }
+    }
+    // processes_ map destruction will clean up AsyncProcess objects
 }
 
 Result<AsyncProcess*> ProcessManager::createProcess(

@@ -103,6 +103,14 @@ public:
      */
     [[nodiscard]] const ProcessConfig& config() const noexcept { return config_; }
 
+    /**
+     * @brief Force immediate kill (non-blocking, for emergency cleanup)
+     * 
+     * This method sends SIGKILL immediately without graceful termination.
+     * Should only be used during emergency cleanup (e.g., destructor).
+     */
+    void forceKillImmediate();
+
 signals:
     /**
      * @brief Emitted when process state changes
