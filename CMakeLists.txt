@@ -98,6 +98,11 @@ set(UI_SOURCES
     src/ui/WorkspaceViewModel.cpp
 )
 
+# QML resources
+set(QML_RESOURCES
+    src/ui/resources.qrc
+)
+
 # Factory implementation (to be implemented)
 set(FACTORY_SOURCES
     # src/ApplicationFactory.cpp
@@ -110,6 +115,7 @@ add_executable(${PROJECT_NAME}
     ${PLATFORM_SOURCES}
     ${STORAGE_SOURCES}
     ${UI_SOURCES}
+    ${QML_RESOURCES}
 #    ${FACTORY_SOURCES}
 )
 
