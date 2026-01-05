@@ -12,7 +12,7 @@ NativeEffects* NativeEffects::create(QObject *parent)
 {
     return new WindowsNativeEffects(parent);
 }
-#elif defined(Q_OS_MACOS)
+#elif defined(Q_OS_MACOS) || defined(Q_OS_MAC)
 #include "MacOSNativeEffects.h"
 NativeEffects* NativeEffects::create(QObject *parent)
 {

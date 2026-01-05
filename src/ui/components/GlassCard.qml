@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Effects
 
 // Reusable glass card component with glassmorphism design
 Item {
@@ -9,9 +8,7 @@ Item {
     property real borderOpacity: 0.3
     property color glassColor: "#ffffff"
     property color borderColor: "#ffffff"
-    property real blurRadius: 32
     property real cornerRadius: 16
-    property bool enableBlur: true
     
     // Content container - child items go here
     default property alias content: contentItem.children
