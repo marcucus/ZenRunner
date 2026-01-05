@@ -121,21 +121,11 @@ public:
             return nullptr;
         }
         
-        // Extract project information
-        const QString projectName = extractProjectName(parseResult.data);
-        const QMap<QString, QString> scripts = extractScripts(parseResult.data);
+        // TODO: Requires Project factory implementation
+        // This method will be fully implemented once the Project factory is available
+        // For now, it validates the package.json but returns nullptr
         
-        // Get project directory from package.json path
-        const QFileInfo fileInfo(packageJsonPath);
-        const QString projectPath = fileInfo.absolutePath();
-        
-        // Create project using the factory (forward declaration requires linking)
-        // For now, return nullptr - this will be implemented when Project class is available
-        // auto project = createProject(projectName, projectPath);
-        // project->setScripts(scripts);
-        // return project;
-        
-        return nullptr; // Placeholder - requires Project implementation
+        return nullptr;
     }
 
     QJsonObject serializeProject(const IProject& project) override {

@@ -24,7 +24,7 @@ public:
     ~LogBuffer() override = default;
 
     void append(const LogEntry& entry) override {
-        buffer_->push(entry);
+        buffer_->emplace(entry);
     }
 
     void append(const QString& text, bool isError = false) override {

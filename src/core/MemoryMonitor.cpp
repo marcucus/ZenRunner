@@ -52,24 +52,43 @@ MemoryStats MemoryMonitor::getCurrentUsage() {
     
     while (std::getline(statusFile, line)) {
         if (line.substr(0, 6) == "VmRSS:") {
-            // Extract KB value
+            // Extract KB value - use simple parsing to avoid exceptions
             size_t pos = line.find_last_of('\t');
             if (pos != std::string::npos) {
-                const size_t kb = std::stoull(line.substr(pos + 1));
+                const std::string value = line.substr(pos + 1);
+                // Manual parsing without exceptions
+                size_t kb = 0;
+                for (char c : value) {
+                    if (c >= '0' && c <= '9') {
+                        kb = kb * 10 + (c - '0');
+                    }
+                }
                 stats.currentRSS = kb * 1024;
             }
         } else if (line.substr(0, 10) == "VmHWM:") {
             // Peak RSS
             size_t pos = line.find_last_of('\t');
             if (pos != std::string::npos) {
-                const size_t kb = std::stoull(line.substr(pos + 1));
+                const std::string value = line.substr(pos + 1);
+                size_t kb = 0;
+                for (char c : value) {
+                    if (c >= '0' && c <= '9') {
+                        kb = kb * 10 + (c - '0');
+                    }
+                }
                 stats.peakRSS = kb * 1024;
             }
         } else if (line.substr(0, 7) == "VmSize:") {
             // Virtual memory
             size_t pos = line.find_last_of('\t');
             if (pos != std::string::npos) {
-                const size_t kb = std::stoull(line.substr(pos + 1));
+                const std::string value = line.substr(pos + 1);
+                size_t kb = 0;
+                for (char c : value) {
+                    if (c >= '0' && c <= '9') {
+                        kb = kb * 10 + (c - '0');
+                    }
+                }
                 stats.virtualMemory = kb * 1024;
             }
         }

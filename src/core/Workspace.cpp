@@ -100,39 +100,25 @@ public:
     }
 
     int startAll(const QString& scriptName) override {
-        // This requires a ProcessManager reference - placeholder for now
-        // In a full implementation, this would:
-        // 1. Iterate through all projects
-        // 2. Check if each has the specified script
-        // 3. Start the script using ProcessManager
-        // 4. Return count of successfully started processes
-        
-        int started = 0;
+        // TODO: Requires ProcessManager reference for actual implementation
+        // This is a placeholder that counts potential starts
+        int count = 0;
         for (const auto& project : projects_) {
             if (project && project->getScript(scriptName)) {
-                // Would start process here
-                ++started;
+                ++count;
             }
         }
-        return started;
+        return count;
     }
 
     int stopAll(bool forceKill) override {
-        // This requires a ProcessManager reference - placeholder for now
-        // In a full implementation, this would:
-        // 1. Get all running processes for this workspace
-        // 2. Stop each one (graceful or force kill)
-        // 3. Return count of stopped processes
-        
-        return 0; // Placeholder
+        // TODO: Requires ProcessManager reference for actual implementation
+        return 0;
     }
 
     bool isAnyProjectRunning() const override {
-        // This requires a ProcessManager reference - placeholder for now
-        // In a full implementation, this would check ProcessManager
-        // for any running processes associated with projects in this workspace
-        
-        return false; // Placeholder
+        // TODO: Requires ProcessManager reference for actual implementation
+        return false;
     }
 
 private:

@@ -37,6 +37,7 @@ public:
         if (logBuffer_ != logBuffer) {
             logBuffer_ = logBuffer;
             refresh();
+            emit logsAdded(); // Notify UI of buffer change
         }
     }
 
