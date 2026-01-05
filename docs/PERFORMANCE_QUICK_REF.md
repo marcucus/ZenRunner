@@ -9,7 +9,7 @@
 |----------|--------------|---------|
 | Windows  | Direct3D 11/12 | Native |
 | macOS    | Metal | Native |
-| Linux    | Vulkan | Native |
+| Linux    | Vulkan (preferred) | Native (with fallback to OpenGL) |
 | Fallback | OpenGL ES 2.0 | Compatibility |
 
 ### Threaded Render Loop

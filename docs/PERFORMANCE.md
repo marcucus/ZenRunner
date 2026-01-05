@@ -12,8 +12,8 @@ Qt 6's Rendering Hardware Interface (RHI) provides a hardware abstraction layer 
 
 - **Windows**: Direct3D 11/12
 - **macOS**: Metal
-- **Linux**: Vulkan
-- **Fallback**: OpenGL
+- **Linux**: Vulkan (preferred on systems with modern drivers, falls back to OpenGL on older systems)
+- **Universal Fallback**: OpenGL ES 2.0 (ensures compatibility on all platforms)
 
 ### Configuration in main.cpp
 

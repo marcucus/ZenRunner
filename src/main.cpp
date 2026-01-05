@@ -27,10 +27,10 @@ int main(int argc, char *argv[]) {
     
     // Enable RHI (Rendering Hardware Interface) for modern GPU acceleration
     // Using Unknown lets Qt automatically select the best available API:
-    // - Vulkan on Linux (if available)
+    // - Vulkan on Linux with modern drivers (falls back to OpenGL on older systems)
     // - Metal on macOS
-    // - Direct3D on Windows
-    // - OpenGL as fallback
+    // - Direct3D 11/12 on Windows
+    // - OpenGL ES 2.0 as universal fallback
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::Unknown);
     
     // Set high quality antialiasing for smooth visuals

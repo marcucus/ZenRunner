@@ -21,8 +21,8 @@ ApplicationWindow {
            Qt.WindowCloseButtonHint
     
     // Performance optimizations for 60 FPS target
-    // Enable GPU acceleration for the entire window
-    // Note: Rendering is controlled by Qt Quick's Scene Graph automatically
+    // GPU acceleration is configured globally in main.cpp via RHI
+    // This QML file focuses on efficient structure and animations
     
     // Main container with glassmorphism effect
     Item {
