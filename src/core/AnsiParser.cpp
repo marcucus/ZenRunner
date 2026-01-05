@@ -226,6 +226,7 @@ private:
             }
             else if (code == 38) {
                 // Extended foreground color
+                // Check: i+1 and i+2 must be valid indices (< size)
                 if (i + 2 < codes.size() && codes[i + 1] == "5") {
                     // 256-color mode: 38;5;n
                     int colorIndex = codes[i + 2].toInt(&ok);
@@ -234,6 +235,7 @@ private:
                     }
                     i += 2;
                 }
+                // Check: i+1, i+2, i+3, i+4 must be valid indices (< size)
                 else if (i + 4 < codes.size() && codes[i + 1] == "2") {
                     // RGB mode: 38;2;r;g;b
                     int r = codes[i + 2].toInt(&ok);
@@ -255,6 +257,7 @@ private:
             }
             else if (code == 48) {
                 // Extended background color
+                // Check: i+1 and i+2 must be valid indices (< size)
                 if (i + 2 < codes.size() && codes[i + 1] == "5") {
                     // 256-color mode: 48;5;n
                     int colorIndex = codes[i + 2].toInt(&ok);
@@ -263,6 +266,7 @@ private:
                     }
                     i += 2;
                 }
+                // Check: i+1, i+2, i+3, i+4 must be valid indices (< size)
                 else if (i + 4 < codes.size() && codes[i + 1] == "2") {
                     // RGB mode: 48;2;r;g;b
                     int r = codes[i + 2].toInt(&ok);

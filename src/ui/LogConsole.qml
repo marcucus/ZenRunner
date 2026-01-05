@@ -171,7 +171,7 @@ GlassCard {
                                 
                                 // Check if we have styled segments (ANSI codes)
                                 Repeater {
-                                    model: (typeof styledSegments !== 'undefined' && styledSegments) ? styledSegments : []
+                                    model: styledSegments || []
                                     
                                     delegate: Text {
                                         text: modelData.text
@@ -203,7 +203,7 @@ GlassCard {
                                     wrapMode: Text.Wrap
                                     width: logTextFlow.width
                                     renderType: Text.NativeRendering
-                                    visible: !model.styledSegments || model.styledSegments.length === 0
+                                    visible: !model.hasAnsiCodes
                                 }
                             }
                         }
