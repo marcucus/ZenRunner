@@ -9,6 +9,9 @@
 
 namespace ZenRunner::Core {
 
+// Forward declaration
+class IWorkspace;
+
 /**
  * @brief Result of a JSON parsing operation
  */
