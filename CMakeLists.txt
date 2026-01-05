@@ -23,7 +23,8 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 
 # Source files
 set(CORE_SOURCES
-    # Core module sources will be added here as implemented
+    src/core/ProcessManager.cpp
+    src/core/Project.cpp
 )
 
 set(PLATFORM_SOURCES
@@ -36,7 +37,7 @@ set(QML_RESOURCES
     src/ui/resources.qrc
 )
 
-# Main executable
+
 add_executable(${PROJECT_NAME}
     src/main.cpp
     ${CORE_SOURCES}
