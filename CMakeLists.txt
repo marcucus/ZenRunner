@@ -12,6 +12,10 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+# Check for Link Time Optimization support
+include(CheckIPOSupported)
+check_ipo_supported(RESULT LTO_SUPPORTED OUTPUT LTO_ERROR)
+
 # Find Qt6 packages
 find_package(Qt6 REQUIRED COMPONENTS
     Core
@@ -108,7 +112,7 @@ add_executable(${PROJECT_NAME}
 )
 
 # Link Qt libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(ZenRunner PRIVATE
     Qt6::Core
     Qt6::Quick
     Qt6::Widgets
@@ -125,26 +129,24 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 # ========================================
 if(WIN32)
     # Windows-specific settings (Mica support, DWM API, etc.)
-    # target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_WINDOWS)
-    # target_link_libraries(${PROJECT_NAME} PRIVATE dwmapi)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_WINDOWS)
+    target_link_libraries(${PROJECT_NAME} PRIVATE dwmapi)
 endif()
 
 if(APPLE)
     # macOS-specific settings (Vibrancy, Notch detection, etc.)
-    # target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_MACOS)
-    # Enable Objective-C++ for macOS native APIs
-    # set_source_files_properties(${PLATFORM_SOURCES} PROPERTIES
-    #     COMPILE_FLAGS "-x objective-c++"
-    # )
-    # target_link_libraries(${PROJECT_NAME} PRIVATE
-    #     "-framework AppKit"
-    #     "-framework Foundation"
-    # )
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_MACOS)
+    # Objective-C++ files are automatically handled by CMake based on .mm extension
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        "-framework AppKit"
+        "-framework Foundation"
+    )
 endif()
 
 if(UNIX AND NOT APPLE)
     # Linux-specific settings
-    target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_LINUX)
+    target_compile_definitions(ZenRunner PRIVATE ZENRUNNER_LINUX)
+    target_compile_definitions(test_signal_latency PRIVATE ZENRUNNER_LINUX)
 endif()
 
 # ========================================

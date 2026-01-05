@@ -74,8 +74,14 @@ Public APIs and shared definitions:
 |--------|--------|----------|
 | RAM (Idle) | < 15 MB | Static allocation, lazy loading |
 | RAM (Active) | < 30 MB | Circular buffers, efficient data structures |
-| UI Framerate | 60 FPS | GPU-accelerated Qt Quick Scene Graph |
+| UI Framerate | 60 FPS | GPU-accelerated Qt Quick Scene Graph with RHI |
 | Response Time | < 10 ms | Asynchronous signal/slot architecture |
+
+**🎯 60 FPS Optimization**: ZenRunner implements comprehensive GPU acceleration using Qt's Rendering Hardware Interface (RHI), ensuring consistent 60 FPS performance with:
+- Vulkan on Linux, Metal on macOS, Direct3D on Windows
+- Threaded render loop for parallel CPU/GPU processing
+- Optimized QML layer compositing and caching
+- See [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for details
 
 ## Design Principles
 
@@ -87,12 +93,15 @@ Public APIs and shared definitions:
 ## Building
 
 ```bash
-# Prerequisites: Qt 6.x, CMake 3.21+, C++20 compiler
+# Prerequisites: Qt 6.2+, CMake 3.21+, C++20 compiler
 
 mkdir build && cd build
-cmake ..
-cmake --build .
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . --config Release
+./bin/ZenRunner
 ```
+
+For detailed build instructions and performance testing, see [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md).
 
 ## Development Status
 

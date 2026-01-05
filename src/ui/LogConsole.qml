@@ -94,8 +94,18 @@ GlassCard {
                 anchors.margins: 8
                 clip: true
                 
-                // Performance optimization: cache buffer
-                cacheBuffer: 500
+                // Performance optimizations for 60 FPS
+                // Increase cache buffer to reduce re-rendering
+                cacheBuffer: 1000
+                
+                // Enable asynchronous delegate loading
+                asynchronous: true
+                
+                // Optimize for fast scrolling
+                maximumFlickVelocity: 5000
+                
+                // Use optimal pixel-aligned positioning
+                pixelAligned: true
                 
                 // Scroll to bottom on new items
                 onCountChanged: {
@@ -132,6 +142,7 @@ GlassCard {
                             font.family: "monospace"
                             color: "#666666"
                             anchors.verticalCenter: parent.verticalCenter
+                            renderType: Text.NativeRendering  // Better performance
                         }
                         
                         // Level indicator
@@ -167,6 +178,7 @@ GlassCard {
                             }
                             wrapMode: Text.Wrap
                             width: logView.width - 100
+                            renderType: Text.NativeRendering  // Better performance
                         }
                     }
                 }
