@@ -20,7 +20,7 @@ public:
     CircularBuffer() : head_(0), tail_(0), size_(0) {}
 
     void push(const T& item) {
-        std::lock_guard lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         
         buffer_[tail_] = item;
         tail_ = (tail_ + 1) % Capacity;
@@ -33,7 +33,7 @@ public:
     }
 
     void push(T&& item) {
-        std::lock_guard lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         
         buffer_[tail_] = std::move(item);
         tail_ = (tail_ + 1) % Capacity;
@@ -47,7 +47,7 @@ public:
 
     template<typename... Args>
     void emplace(Args&&... args) {
-        std::lock_guard lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         
         buffer_[tail_] = T(std::forward<Args>(args)...);
         tail_ = (tail_ + 1) % Capacity;
@@ -60,7 +60,7 @@ public:
     }
 
     [[nodiscard]] std::optional<T> at(std::size_t index) const {
-        std::lock_guard lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         
         if (index >= size_) {
             return std::nullopt;
@@ -71,7 +71,7 @@ public:
     }
 
     [[nodiscard]] std::vector<T> toVector() const {
-        std::lock_guard lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         std::vector<T> result;
         result.reserve(size_);
         
@@ -84,7 +84,7 @@ public:
     }
 
     [[nodiscard]] std::vector<T> lastN(std::size_t n) const {
-        std::lock_guard lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         std::vector<T> result;
         
         const std::size_t count = std::min(n, size_);
@@ -100,24 +100,24 @@ public:
     }
 
     void clear() {
-        std::lock_guard lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         head_ = 0;
         tail_ = 0;
         size_ = 0;
     }
 
     [[nodiscard]] std::size_t size() const noexcept {
-        std::lock_guard lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         return size_;
     }
 
     [[nodiscard]] bool empty() const noexcept {
-        std::lock_guard lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         return size_ == 0;
     }
 
     [[nodiscard]] bool full() const noexcept {
-        std::lock_guard lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         return size_ == Capacity;
     }
 
@@ -265,11 +265,12 @@ void testContiguousMemory() {
     addTestResult("All elements retrievable in correct order", allCorrect);
     
     size_t actualSize = sizeof(CircularBuffer<int, 100>);
+    size_t expectedSize = sizeof(std::array<int, 100>) + 3 * sizeof(std::size_t) + sizeof(std::mutex);
     
     std::cout << "  - Buffer memory size: " << actualSize << " bytes" << std::endl;
-    std::cout << "  - Expected for 100 ints: ~" << (100 * sizeof(int)) << " bytes + overhead" << std::endl;
+    std::cout << "  - Expected (array + 3 size_t + mutex): ~" << expectedSize << " bytes" << std::endl;
     
-    addTestResult("Memory footprint is reasonable (< 1KB)", actualSize < 1024);
+    addTestResult("Memory footprint is reasonable", actualSize <= expectedSize + 64); // Allow some padding
 }
 
 // Test 5: Thread safety
