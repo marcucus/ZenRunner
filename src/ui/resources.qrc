@@ -1,0 +1,16 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/ui">
+        <!-- Main QML files -->
+        <file>Main.qml</file>
+        <file>Dashboard.qml</file>
+        <file>ProjectView.qml</file>
+        <file>LogConsole.qml</file>
+        <file>WorkspaceManager.qml</file>
+        
+        <!-- Reusable components -->
+        <file>components/GlassCard.qml</file>
+        <file>components/GlassButton.qml</file>
+        <file>components/qmldir</file>
+    </qresource>
+</RCC>
