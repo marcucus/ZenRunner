@@ -21,25 +21,28 @@ find_package(Qt6 REQUIRED COMPONENTS
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-# Source files will be added as modules are implemented
+# Source files
 set(CORE_SOURCES
     src/core/ProcessManager.cpp
     src/core/Project.cpp
 )
 
 set(PLATFORM_SOURCES
-    # src/platform/*.cpp files will be added here
+    src/platform/NativeEffects.cpp
+    src/platform/GenericNativeEffects.cpp
 )
 
-set(UI_SOURCES
-    # src/ui/*.qml files will be added here
+# Add QML resources
+set(QML_RESOURCES
+    src/ui/resources.qrc
 )
 
-# Main executable (to be configured)
+
 add_executable(${PROJECT_NAME}
     src/main.cpp
     ${CORE_SOURCES}
     ${PLATFORM_SOURCES}
+    ${QML_RESOURCES}
 )
 
 # Link Qt libraries
@@ -52,17 +55,34 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 # Platform-specific configurations
 if(WIN32)
     # Windows-specific settings (Mica support, etc.)
-    # target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_WINDOWS)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_WINDOWS Q_OS_WIN)
+    target_sources(${PROJECT_NAME} PRIVATE
+        src/platform/WindowsNativeEffects.cpp
+    )
+    # Link DWM API for Mica effect
+    target_link_libraries(${PROJECT_NAME} PRIVATE dwmapi)
 endif()
 
 if(APPLE)
     # macOS-specific settings (Vibrancy, Notch detection, etc.)
-    # target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_MACOS)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_MACOS Q_OS_MACOS)
+    target_sources(${PROJECT_NAME} PRIVATE
+        src/platform/MacOSNativeEffects.mm
+    )
+    # Link macOS frameworks
+    find_library(APPKIT_LIBRARY AppKit)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${APPKIT_LIBRARY})
+    # Enable Objective-C++ for .mm files
+    set_source_files_properties(
+        src/platform/MacOSNativeEffects.mm
+        PROPERTIES
+        COMPILE_FLAGS "-x objective-c++"
+    )
 endif()
 
 if(UNIX AND NOT APPLE)
     # Linux-specific settings
-    # target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_LINUX)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_LINUX)
 endif()
 
 # Subdirectories for modular build (uncomment as modules are implemented)
