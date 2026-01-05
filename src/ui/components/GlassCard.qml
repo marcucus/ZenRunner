@@ -1,7 +1,7 @@
 import QtQuick
 
 // Reusable glass card component with glassmorphism design
-// Optimized for 60 FPS with GPU layer compositing
+// Optimized for 60 FPS with optional GPU layer compositing
 Item {
     id: root
     
@@ -10,6 +10,7 @@ Item {
     property color glassColor: "#ffffff"
     property color borderColor: "#ffffff"
     property real cornerRadius: 16
+    property bool enableLayer: false  // Only enable for complex effects
     
     // Content container - child items go here
     default property alias content: contentItem.children
@@ -25,10 +26,11 @@ Item {
         border.width: 1
         border.color: Qt.rgba(borderColor.r, borderColor.g, borderColor.b, borderOpacity)
         
-        // Enable GPU layer for the entire glass effect
-        layer.enabled: true
-        layer.smooth: true
-        layer.samples: 4  // MSAA for smooth edges
+        // Enable GPU layer only when requested (for complex effects)
+        // This prevents performance issues when many cards are rendered
+        layer.enabled: root.enableLayer
+        layer.smooth: root.enableLayer
+        layer.samples: root.enableLayer ? 4 : 0  // MSAA for smooth edges
         
         // Inner highlight for glassmorphism effect
         Rectangle {

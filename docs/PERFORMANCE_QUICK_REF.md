@@ -153,7 +153,7 @@ QSG_INFO=1 QSG_RENDER_TIMING=1 QSG_VISUALIZE=batches ./ZenRunner
 export QSG_RENDER_LOOP=threaded
 
 # Try different backend
-export QSG_RHI_BACKEND=vulkan
+export QSG_RHI_BACKEND=Vulkan
 ```
 
 ### High Memory?

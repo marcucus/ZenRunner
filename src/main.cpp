@@ -26,8 +26,12 @@ int main(int argc, char *argv[]) {
     qputenv("QSG_RENDER_LOOP", "threaded");
     
     // Enable RHI (Rendering Hardware Interface) for modern GPU acceleration
-    // This ensures we use Vulkan/Metal/Direct3D instead of legacy OpenGL
-    QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::Vulkan);
+    // Using Unknown lets Qt automatically select the best available API:
+    // - Vulkan on Linux (if available)
+    // - Metal on macOS
+    // - Direct3D on Windows
+    // - OpenGL as fallback
+    QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::Unknown);
     
     // Set high quality antialiasing for smooth visuals
     QSurfaceFormat format;
@@ -44,7 +48,7 @@ int main(int argc, char *argv[]) {
     
     qDebug() << "ZenRunner - High-Performance Native Process Manager";
     qDebug() << "==================================================";
-    qDebug() << "GPU Acceleration: RHI with" << QQuickWindow::graphicsApi();
+    qDebug() << "GPU Acceleration: RHI (auto-detect best API)";
     qDebug() << "Render Loop: Threaded (60 FPS target)";
     qDebug() << "Antialiasing: 4x MSAA";
     

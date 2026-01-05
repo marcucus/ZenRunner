@@ -32,7 +32,7 @@ All UI components leverage Qt Quick's Scene Graph with hardware acceleration:
 
 #### Layer Usage
 
-Components use `layer.enabled: true` for GPU compositing:
+Components can use `layer.enabled: true` for GPU compositing when needed:
 
 ```qml
 Rectangle {
@@ -42,11 +42,12 @@ Rectangle {
 }
 ```
 
-**Applied in**:
-- Background gradients (Main.qml)
-- Animated particles (Main.qml)
-- Glass card effects (GlassCard.qml)
-- Log delegate items (LogConsole.qml)
+**Applied selectively in**:
+- Animated particles (Main.qml) - for smooth animations
+- Log delegate items (LogConsole.qml) - for smooth scrolling
+- Glass cards with effects (GlassCard.qml) - configurable via `enableLayer` property
+
+**Note**: Layer compositing is now configurable in GlassCard to prevent performance issues when many cards are rendered simultaneously.
 
 ### 2. ListView Optimization (LogConsole.qml)
 
@@ -117,6 +118,7 @@ GlassCard {
     height: 200
     glassOpacity: 0.15        // Transparency level
     cornerRadius: 16          // Rounded corners
+    enableLayer: true         // Enable GPU compositing for complex effects
     
     // Content goes here
     Text {
@@ -125,6 +127,8 @@ GlassCard {
     }
 }
 ```
+
+**Performance tip**: Only set `enableLayer: true` for cards with complex visual effects or animations. Leave it as `false` (default) for simple cards to conserve GPU memory.
 
 ### GlassButton
 

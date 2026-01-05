@@ -22,12 +22,7 @@ ApplicationWindow {
     
     // Performance optimizations for 60 FPS target
     // Enable GPU acceleration for the entire window
-    Component.onCompleted: {
-        // Set render mode to continuous for smooth animations
-        if (typeof mainWindow.scheduleRenderJob !== 'undefined') {
-            mainWindow.scheduleRenderJob(function() {}, QQuickWindow.BeforeSynchronizingStage)
-        }
-    }
+    // Note: Rendering is controlled by Qt Quick's Scene Graph automatically
     
     // Main container with glassmorphism effect
     Item {
@@ -40,10 +35,6 @@ ApplicationWindow {
                 GradientStop { position: 0.0; color: "#1a1a2e" }
                 GradientStop { position: 1.0; color: "#0f0f1e" }
             }
-            
-            // Enable layer for GPU compositing
-            layer.enabled: true
-            layer.smooth: true
         }
         
         // Optimized animated background particles for depth
@@ -59,10 +50,6 @@ ApplicationWindow {
                 color: Qt.rgba(0.3, 0.5, 0.8, Math.random() * 0.3 + 0.1)
                 x: Math.random() * mainWindow.width
                 y: Math.random() * mainWindow.height
-                
-                // Enable layer for GPU compositing of particles
-                layer.enabled: true
-                layer.smooth: true
                 
                 // Optimized float animation with longer duration to reduce GPU load
                 SequentialAnimation on y {
@@ -104,10 +91,6 @@ ApplicationWindow {
             id: dashboard
             anchors.fill: parent
             anchors.margins: 20
-            
-            // Enable layer for GPU compositing of dashboard
-            layer.enabled: true
-            layer.smooth: true
         }
     }
 }

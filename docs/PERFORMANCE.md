@@ -23,14 +23,20 @@ The application configures GPU acceleration before the QGuiApplication is create
 // Use threaded render loop for consistent 60 FPS
 qputenv("QSG_RENDER_LOOP", "threaded");
 
-// Enable RHI with Vulkan (or Metal/D3D based on platform)
-QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::Vulkan);
+// Enable RHI - Qt automatically selects the best available API
+QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::Unknown);
 
 // Set high quality antialiasing
 QSurfaceFormat format;
 format.setSamples(4);  // 4x MSAA for smooth edges
 QSurfaceFormat::setDefaultFormat(format);
 ```
+
+By using `GraphicsApi::Unknown`, Qt will automatically select:
+- **Vulkan** on Linux (if available, otherwise OpenGL)
+- **Metal** on macOS
+- **Direct3D 11/12** on Windows
+- **OpenGL ES 2.0** as fallback on any platform
 
 ### Threaded Render Loop
 
@@ -60,10 +66,9 @@ Rectangle {
 - Improves animation performance
 
 **Applied to**:
-- Background gradients (Main.qml)
 - Animated particles (Main.qml)
-- Glass cards (GlassCard.qml)
-- Dashboard components (Dashboard.qml)
+- Log console delegates (LogConsole.qml)
+- Glass cards when needed (GlassCard.qml - configurable via `enableLayer` property)
 
 ### 2. ListView Optimizations
 
@@ -216,6 +221,7 @@ QSG_NO_VSYNC=1 ./ZenRunner
    - Simple rectangles or text
    - Items that change size frequently
    - Deeply nested hierarchies
+   - Multiple simple cards (use `enableLayer: false` on GlassCard)
 
 3. **ListView optimization**:
    - Keep delegates lightweight
