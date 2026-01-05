@@ -29,6 +29,24 @@ else()
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# Memory optimization flags
+add_compile_options(
+    $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-fno-exceptions>  # Disable exceptions for smaller binary
+    $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-fdata-sections>  # Enable dead code elimination
+    $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-ffunction-sections>
+)
+
+# Link-time optimizations for memory
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_compile_options(
+        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-flto>  # Link-time optimization
+    )
+    add_link_options(
+        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wl,--gc-sections>  # Remove unused sections
+        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-flto>
+    )
+endif()
+
 # ========================================
 # Layer Definitions
 # ========================================
@@ -42,23 +60,23 @@ endif()
 # located in include/<layer>/ directories.
 # ========================================
 
-# Core Layer sources (to be implemented)
+# Core Layer sources
 set(CORE_SOURCES
     # Implementations of core interfaces:
-    # src/core/ProcessManager.cpp
-    # src/core/Project.cpp
-    # src/core/Workspace.cpp
-    # src/core/JsonParser.cpp
-    # src/core/LogBuffer.cpp
+    src/core/ProcessManager.cpp
+    src/core/Project.cpp
+    src/core/JsonParser.cpp
+    src/core/LogBuffer.cpp
+    src/core/MemoryMonitor.cpp
 )
 
-# Platform Layer sources (to be implemented)
+# Platform Layer sources
 set(PLATFORM_SOURCES
     # Implementations of platform interfaces:
-    # src/platform/PlatformEffect.cpp
-    # src/platform/SystemTray.cpp
-    # src/platform/NativeNotifications.cpp
-    # src/platform/PlatformUtils.cpp
+    src/platform/PlatformEffect.cpp
+    src/platform/NativeEffects.cpp
+    src/platform/WindowsNativeEffects.cpp
+    src/platform/GenericNativeEffects.cpp
 )
 
 # Storage Layer sources (to be implemented)
@@ -82,15 +100,15 @@ set(FACTORY_SOURCES
     # src/ApplicationFactory.cpp
 )
 
-# Main executable (to be configured when implementations are ready)
-# add_executable(${PROJECT_NAME}
-#     src/main.cpp
-#     ${CORE_SOURCES}
-#     ${PLATFORM_SOURCES}
-#     ${STORAGE_SOURCES}
-#     ${UI_SOURCES}
-#     ${FACTORY_SOURCES}
-# )
+# Main executable
+add_executable(${PROJECT_NAME}
+    src/main.cpp
+    ${CORE_SOURCES}
+    ${PLATFORM_SOURCES}
+#    ${STORAGE_SOURCES}
+#    ${UI_SOURCES}
+#    ${FACTORY_SOURCES}
+)
 
 # Link Qt libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -100,10 +118,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 # Target properties
-# set_target_properties(${PROJECT_NAME} PROPERTIES
-#     OUTPUT_NAME "ZenRunner"
-#     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-# )
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    OUTPUT_NAME "ZenRunner"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
 
 # ========================================
 # Platform-specific configurations

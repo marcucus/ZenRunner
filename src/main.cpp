@@ -1,6 +1,7 @@
 #include "core/ProcessManager.h"
 #include "core/Project.h"
 #include "core/CircularBuffer.h"
+#include "core/MemoryMonitor.hpp"
 #include "types/CommonTypes.h"
 
 #include <QCoreApplication>
@@ -19,6 +20,10 @@ int main(int argc, char *argv[]) {
     
     qDebug() << "ZenRunner Backend - C++20 with Asynchronous QProcess";
     qDebug() << "=====================================================";
+    
+    // Log initial memory usage
+    qDebug() << "\n[Initial Memory Usage]";
+    Memory::MemoryMonitor::logUsage();
     
     // Test CircularBuffer with C++20 concepts
     {
@@ -95,6 +100,10 @@ int main(int argc, char *argv[]) {
     }
     
     qDebug() << "\n[Running event loop...]";
+    
+    // Log memory after setup
+    qDebug() << "\n[Memory Usage After Setup]";
+    Memory::MemoryMonitor::logUsage();
     
     return app.exec();
 }
