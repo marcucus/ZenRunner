@@ -90,6 +90,8 @@ set(STORAGE_SOURCES
     # Implementations of storage interfaces:
     src/storage/SettingsManager.cpp
     src/storage/WorkspaceRepository.cpp
+    src/storage/ProjectRepository.cpp
+    src/storage/ApplicationStateManager.cpp
 )
 
 # UI Layer sources
