@@ -32,7 +32,30 @@ public:
      */
     explicit ProjectRepository(const QString& storageDir = QString());
 
+    /**
+     * @brief Save a project to persistent storage
+     * 
+     * NOTE: The project ID is stored but will change on reload since Project
+     * generates new UUIDs. Use the project path as the stable identifier.
+     * 
+     * @param project Project to save
+     * @return true if save was successful
+     */
     bool saveProject(const Project& project);
+
+    /**
+     * @brief Load a project by ID
+     * 
+     * NOTE: Due to the Project class generating new UUIDs on each load from disk,
+     * the returned project will have a different ID than the stored ID. The project
+     * is instead identified by its path. The stored ID is kept for reference but
+     * should not be used as a stable identifier across sessions.
+     * 
+     * For stable project identification, use the project's path instead.
+     * 
+     * @param projectId Project identifier (stored for reference only)
+     * @return Shared pointer to project, or nullptr if not found
+     */
     std::shared_ptr<Project> loadProject(const QString& projectId);
     std::shared_ptr<Project> loadProjectFromPath(const QString& projectPath);
     bool deleteProject(const QString& projectId);

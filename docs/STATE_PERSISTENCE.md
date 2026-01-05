@@ -61,6 +61,24 @@ Each component validates data on load:
 - Corrupted data is automatically removed
 - Graceful degradation when data is incomplete
 
+### Project ID Behavior
+**Important Note**: The `Project` class generates a new UUID each time it's loaded from disk. This means:
+- Stored project IDs are for reference only
+- **Use the project's path as the stable identifier** across sessions
+- The repository's path index maintains path-to-ID mappings
+- When loading projects, use `loadProjectFromPath()` for path-based lookups
+
+Example:
+```cpp
+// Save a project
+auto project = Project::fromDirectory("/path/to/project").unwrap();
+projectRepo->saveProject(project);  // Saves with current ID
+
+// Later, load by path (recommended for stability)
+auto reloadedProject = projectRepo->loadProjectFromPath("/path/to/project");
+// Note: reloadedProject->id() will be different from original project.id()
+```
+
 ### Auto-Save
 Periodic state persistence prevents data loss:
 - Configurable interval (default: 60 seconds)
