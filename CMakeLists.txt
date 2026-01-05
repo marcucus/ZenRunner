@@ -171,6 +171,23 @@ set_target_properties(test_ansi_parser PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
+# LogBuffer with ANSI Integration Test
+add_executable(test_logbuffer_ansi_integration
+    src/test_logbuffer_ansi_integration.cpp
+    src/core/LogBuffer.cpp
+    src/core/AnsiParser.cpp
+)
+
+target_link_libraries(test_logbuffer_ansi_integration PRIVATE
+    Qt6::Core
+    Qt6::Gui
+)
+
+set_target_properties(test_logbuffer_ansi_integration PROPERTIES
+    OUTPUT_NAME "test_logbuffer_ansi"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
 # ========================================
 # Platform-specific configurations
 # ========================================
