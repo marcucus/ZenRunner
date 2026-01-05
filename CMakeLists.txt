@@ -65,6 +65,7 @@ set(CORE_SOURCES
     # Implementations of core interfaces:
     src/core/ProcessManager.cpp
     src/core/Project.cpp
+    src/core/Workspace.cpp
     src/core/JsonParser.cpp
     src/core/LogBuffer.cpp
     src/core/MemoryMonitor.cpp
@@ -79,20 +80,16 @@ set(PLATFORM_SOURCES
     src/platform/GenericNativeEffects.cpp
 )
 
-# Storage Layer sources (to be implemented)
+# Storage Layer sources
 set(STORAGE_SOURCES
     # Implementations of storage interfaces:
-    # src/storage/SettingsManager.cpp
-    # src/storage/ProjectRepository.cpp
-    # src/storage/WorkspaceRepository.cpp
+    src/storage/SettingsManager.cpp
 )
 
-# UI Layer sources (to be implemented)
+# UI Layer sources
 set(UI_SOURCES
     # QML files and view model implementations:
-    # src/ui/LogViewModel.cpp
-    # src/ui/ProjectViewModel.cpp
-    # src/ui/WorkspaceViewModel.cpp
+    src/ui/LogViewModel.cpp
 )
 
 # Factory implementation (to be implemented)
@@ -105,8 +102,8 @@ add_executable(${PROJECT_NAME}
     src/main.cpp
     ${CORE_SOURCES}
     ${PLATFORM_SOURCES}
-#    ${STORAGE_SOURCES}
-#    ${UI_SOURCES}
+    ${STORAGE_SOURCES}
+    ${UI_SOURCES}
 #    ${FACTORY_SOURCES}
 )
 
