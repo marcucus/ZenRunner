@@ -1,10 +1,21 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import "./components"
 
 // Main dashboard view - project overview and quick actions
 Item {
     id: dashboard
+    
+    // File dialog for folder selection
+    FolderDialog {
+        id: folderDialog
+        title: "Select Project Folder to Scan"
+        onAccepted: {
+            console.log("Selected folder:", selectedFolder)
+            projectManager.scanFolder(selectedFolder, 3)
+        }
+    }
     
     ColumnLayout {
         anchors.fill: parent
@@ -94,7 +105,7 @@ Item {
                             
                             Text {
                                 anchors.centerIn: parent
-                                text: "0"
+                                text: projectManager.projectCount.toString()
                                 font.pixelSize: 11
                                 font.weight: Font.Medium
                                 color: "#4a90e2"
@@ -107,39 +118,133 @@ Item {
                             text: "Scan Folder"
                             width: 110
                             implicitHeight: 32
+                            onClicked: {
+                                folderDialog.open()
+                            }
                         }
                     }
                     
-                    // Projects list (placeholder)
-                    Rectangle {
+                    // Projects list
+                    ListView {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        radius: 8
-                        color: Qt.rgba(0, 0, 0, 0.2)
+                        spacing: 12
+                        clip: true
                         
-                        Column {
-                            anchors.centerIn: parent
-                            spacing: 12
+                        model: projectManager
+                        
+                        delegate: GlassCard {
+                            width: ListView.view.width
+                            glassOpacity: 0.08
                             
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: "📦"
-                                font.pixelSize: 48
-                                opacity: 0.3
+                            required property string name
+                            required property string path
+                            required property int scriptCount
+                            required property var scripts
+                            
+                            ColumnLayout {
+                                anchors.fill: parent
+                                spacing: 8
+                                
+                                // Project header
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+                                    
+                                    Text {
+                                        text: name
+                                        font.pixelSize: 16
+                                        font.weight: Font.DemiBold
+                                        color: "#ffffff"
+                                        Layout.fillWidth: true
+                                    }
+                                    
+                                    Rectangle {
+                                        width: 50
+                                        height: 20
+                                        radius: 10
+                                        color: Qt.rgba(0.3, 0.6, 1.0, 0.15)
+                                        
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: scriptCount + " scripts"
+                                            font.pixelSize: 10
+                                            color: "#4a90e2"
+                                        }
+                                    }
+                                }
+                                
+                                // Project path
+                                Text {
+                                    text: path
+                                    font.pixelSize: 11
+                                    color: "#888888"
+                                    elide: Text.ElideMiddle
+                                    Layout.fillWidth: true
+                                }
+                                
+                                // Script action buttons
+                                Flow {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+                                    
+                                    Repeater {
+                                        model: scripts
+                                        
+                                        GlassButton {
+                                            required property var modelData
+                                            
+                                            text: modelData.name
+                                            implicitHeight: 32
+                                            width: Math.max(80, implicitWidth)
+                                            accentColor: {
+                                                const scriptName = modelData.name.toLowerCase()
+                                                if (scriptName === "start" || scriptName === "dev") return "#4ade80"
+                                                if (scriptName === "test") return "#fbbf24"
+                                                if (scriptName === "build") return "#60a5fa"
+                                                if (scriptName === "lint") return "#a78bfa"
+                                                return "#4a90e2"
+                                            }
+                                            
+                                            onClicked: {
+                                                console.log("Running script:", modelData.name, "with command:", modelData.command)
+                                                // TODO: Execute script via ProcessManager
+                                            }
+                                        }
+                                    }
+                                }
                             }
+                        }
+                        
+                        // Empty state
+                        Item {
+                            visible: projectManager.projectCount === 0
+                            anchors.fill: parent
                             
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: "No projects yet"
-                                font.pixelSize: 14
-                                color: "#666666"
-                            }
-                            
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: "Import a project folder to get started"
-                                font.pixelSize: 12
-                                color: "#555555"
+                            Column {
+                                anchors.centerIn: parent
+                                spacing: 12
+                                
+                                Text {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: "📦"
+                                    font.pixelSize: 48
+                                    opacity: 0.3
+                                }
+                                
+                                Text {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: "No projects yet"
+                                    font.pixelSize: 14
+                                    color: "#666666"
+                                }
+                                
+                                Text {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: "Click 'Scan Folder' to detect projects"
+                                    font.pixelSize: 12
+                                    color: "#555555"
+                                }
                             }
                         }
                     }

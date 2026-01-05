@@ -1,4 +1,4 @@
-#include "ui/LogViewModel.h"
+#include "LogViewModel.h"
 #include <QDateTime>
 #include <algorithm>
 

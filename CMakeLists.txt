@@ -68,6 +68,7 @@ endif()
 set(CORE_SOURCES
     # Implementations of core interfaces:
     src/core/ProcessManager.cpp
+    include/core/ProcessManager.h
     src/core/Project.cpp
     src/core/Workspace.cpp
     src/core/JsonParser.cpp
@@ -78,8 +79,8 @@ set(CORE_SOURCES
 # Platform Layer sources
 set(PLATFORM_SOURCES
     # Implementations of platform interfaces:
-    src/platform/PlatformEffect.cpp
     src/platform/NativeEffects.cpp
+    include/platform/NativeEffects.h
     src/platform/WindowsNativeEffects.cpp
     src/platform/GenericNativeEffects.cpp
 )
@@ -94,13 +95,12 @@ set(STORAGE_SOURCES
 # UI Layer sources
 set(UI_SOURCES
     # QML files and view model implementations:
+    src/ui/ILogViewModel.cpp
+    include/ui/ILogViewModel.hpp
     src/ui/LogViewModel.cpp
-    src/ui/WorkspaceViewModel.cpp
-)
-
-# QML resources
-set(QML_RESOURCES
-    src/ui/resources.qrc
+    include/ui/IProjectManager.hpp
+    src/ui/ProjectManager.cpp
+    include/ui/ProjectManager.h
 )
 
 # Factory implementation (to be implemented)
@@ -117,6 +117,7 @@ add_executable(${PROJECT_NAME}
     ${UI_SOURCES}
     ${QML_RESOURCES}
 #    ${FACTORY_SOURCES}
+    src/ui/resources.qrc
 )
 
 # Link Qt libraries
@@ -172,8 +173,7 @@ endif()
 
 if(UNIX AND NOT APPLE)
     # Linux-specific settings
-    target_compile_definitions(ZenRunner PRIVATE ZENRUNNER_LINUX)
-    target_compile_definitions(test_signal_latency PRIVATE ZENRUNNER_LINUX)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ZENRUNNER_LINUX)
 endif()
 
 # ========================================

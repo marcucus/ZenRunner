@@ -1,4 +1,4 @@
-#include "core/LogBuffer.h"
+#include "LogBuffer.h"
 #include "core/CircularBuffer.h"
 #include <QDateTime>
 #include <algorithm>

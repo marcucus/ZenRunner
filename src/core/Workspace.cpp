@@ -1,5 +1,4 @@
-#include "core/Workspace.h"
-#include "core/IProcessManager.hpp"
+#include "Workspace.h"
 #include <QUuid>
 #include <algorithm>
 

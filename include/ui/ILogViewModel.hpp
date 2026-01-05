@@ -17,6 +17,7 @@ class ILogViewModel : public QAbstractListModel {
     Q_OBJECT
 
 public:
+    ILogViewModel(QObject* parent = nullptr);
     virtual ~ILogViewModel() = default;
 
     /**
