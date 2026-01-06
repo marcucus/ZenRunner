@@ -8,6 +8,7 @@
 #include "storage/WorkspaceRepository.h"
 #include "storage/ProjectRepository.h"
 #include "storage/ApplicationStateManager.h"
+#include "platform/NativePlatformManager.h"
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -87,6 +88,21 @@ int main(int argc, char *argv[]) {
     stateManager->setAutoSaveEnabled(true, 60);
     qDebug() << "Auto-save enabled (60 second interval)";
     
+    // Create Native Platform Manager for system tray and notifications
+    // Note: Stack allocation is safe here - lives until app.exec() returns
+    Platform::NativePlatformManager platformManager;
+    
+    // Initialize system tray
+    if (platformManager.initializeSystemTray()) {
+        qDebug() << "System tray initialized successfully";
+    } else {
+        qDebug() << "System tray not available on this platform";
+    }
+    
+    // Create ProcessManager instance for managing all processes
+    // Note: Stack allocation is safe here - lives until app.exec() returns
+    ProcessManager processManager;
+    
     // Create ProjectManager instance
     UI::ProjectManager projectManager;
     
@@ -96,15 +112,82 @@ int main(int argc, char *argv[]) {
     // Expose managers to QML
     engine.rootContext()->setContextProperty("projectManager", &projectManager);
     engine.rootContext()->setContextProperty("stateManager", stateManager.get());
+    engine.rootContext()->setContextProperty("processManager", &processManager);
+    engine.rootContext()->setContextProperty("platformManager", &platformManager);
+    
+    // Connect process crash events to notification system
+    QObject::connect(&processManager, &ProcessManager::processCrashed,
+                     &platformManager, [&platformManager](const QString& id, int exitCode) {
+        qWarning() << "Process crashed:" << id << "with exit code:" << exitCode;
+        platformManager.showNotification(
+            "Process Crashed",
+            QString("Process '%1' crashed with exit code %2").arg(id).arg(exitCode)
+        );
+        platformManager.setTrayState(Platform::TrayIconState::Error);
+    });
+    
+    // Connect process error events to notification system
+    QObject::connect(&processManager, &ProcessManager::processError,
+                     &platformManager, [&platformManager](const QString& id, const QString& error) {
+        qWarning() << "Process error:" << id << "-" << error;
+        platformManager.showNotification(
+            "Process Error",
+            QString("Process '%1': %2").arg(id, error)
+        );
+        platformManager.setTrayState(Platform::TrayIconState::Warning);
+    });
+    
+    // Update tray state based on process states
+    QObject::connect(&processManager, &ProcessManager::processStateChanged,
+                     &platformManager, [&platformManager, &processManager](const QString& /*id*/, ProcessState newState) {
+        if (newState == ProcessState::Running) {
+            if (processManager.hasRunningProcesses()) {
+                platformManager.setTrayState(Platform::TrayIconState::Active);
+            }
+        } else if (newState == ProcessState::Finished || newState == ProcessState::Stopped) {
+            if (!processManager.hasRunningProcesses()) {
+                platformManager.setTrayState(Platform::TrayIconState::Idle);
+            }
+        }
+    });
     
     // Load main QML file
     const QUrl url(QStringLiteral("qrc:/ui/Main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
-                     &app, [url](QObject *obj, const QUrl &objUrl) {
-        if (!obj && url == objUrl)
+                     &app, [url, &platformManager](QObject *obj, const QUrl &objUrl) {
+        if (!obj && url == objUrl) {
             QCoreApplication::exit(-1);
+            return;
+        }
+        
+        // Apply native effects if window is created
+        if (obj) {
+            QQuickWindow *window = qobject_cast<QQuickWindow*>(obj);
+            if (window && platformManager.getNativeEffects()) {
+                if (platformManager.initializeNativeEffects(window)) {
+                    qDebug() << "Native effects applied successfully";
+                }
+            }
+        }
     }, Qt::QueuedConnection);
     engine.load(url);
+    
+    // Connect platform manager signals for window management
+    QObject::connect(&platformManager, &Platform::NativePlatformManager::showRequested,
+                     &app, [&engine]() {
+        auto rootObjects = engine.rootObjects();
+        if (!rootObjects.isEmpty()) {
+            QQuickWindow *window = qobject_cast<QQuickWindow*>(rootObjects.first());
+            if (window) {
+                window->show();
+                window->raise();
+                window->requestActivate();
+            }
+        }
+    });
+    
+    QObject::connect(&platformManager, &Platform::NativePlatformManager::quitRequested,
+                     &app, &QGuiApplication::quit);
     
     qDebug() << "\n[Application started]";
     
@@ -112,9 +195,21 @@ int main(int argc, char *argv[]) {
     qDebug() << "[Memory Usage After Setup]";
     Memory::MemoryMonitor::logUsage();
     
-    // Setup cleanup on exit
+    // Setup cleanup on exit - ensure all processes are stopped gracefully
     QObject::connect(&app, &QCoreApplication::aboutToQuit, [&]() {
         qDebug() << "\n[Application shutting down]";
+        
+        // Stop all running processes gracefully before exit
+        if (processManager.hasRunningProcesses()) {
+            qDebug() << "Stopping" << processManager.runningCount() << "running processes...";
+            processManager.stopAll(5000);  // 5 second timeout for graceful termination
+            
+            // Allow event loop to process termination signals
+            // ProcessManager destructor will force-kill any remaining processes
+            // The 100ms timeout is just for initial signal processing
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+        }
+        
         qDebug() << "Saving application state...";
         
         if (stateManager->saveState()) {

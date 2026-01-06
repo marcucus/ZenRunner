@@ -456,8 +456,12 @@ void ProcessManager::connectProcessSignals(const QString& id, AsyncProcess* proc
             }, Qt::DirectConnection);
     
     connect(process, &AsyncProcess::finished,
-            this, [this, id](int exitCode, QProcess::ExitStatus /*status*/) {
+            this, [this, id](int exitCode, QProcess::ExitStatus exitStatus) {
                 emit processFinished(id, exitCode);
+                // Emit crash-specific signal for immediate notification
+                if (exitStatus == QProcess::CrashExit) {
+                    emit processCrashed(id, exitCode);
+                }
             }, Qt::DirectConnection);
     
     connect(process, &AsyncProcess::errorOccurred,
