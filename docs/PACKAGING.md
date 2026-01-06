@@ -105,6 +105,14 @@ The custom NSIS script provides a professional installer with:
 
 4. **Output**: `build\ZenRunner-Setup-1.0.0.exe`
 
+#### Optional: Custom Icons
+
+To use custom icons for the installer:
+
+1. Create an icon file: `packaging/windows/icon.ico` (256x256 recommended)
+2. The build scripts will automatically use it if present
+3. If not present, default NSIS icons will be used
+
 ### Method 2: Using CPack
 
 CPack provides automatic packaging integrated with CMake:
@@ -152,6 +160,15 @@ The provided script creates a professional DMG with:
    ```
 
 3. **Output**: `build/ZenRunner-1.0.0.dmg`
+
+#### Optional: Custom Icons and Background
+
+To customize the macOS package appearance:
+
+1. **App Icon**: Create `packaging/macos/ZenRunner.icns` (512x512@2x recommended)
+2. **DMG Background**: Create `packaging/macos/background.png` (600x400 recommended)
+3. The build scripts will automatically use them if present
+4. If not present, default appearance will be used
 
 ### Manual .app Bundle Creation
 
