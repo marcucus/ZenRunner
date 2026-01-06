@@ -413,7 +413,7 @@ elseif(UNIX)
     
     # RPM package settings
     set(CPACK_RPM_PACKAGE_GROUP "Development/Tools")
-    set(CPACK_RPM_PACKAGE_LICENSE "TBD")
+    set(CPACK_RPM_PACKAGE_LICENSE "MIT")
     set(CPACK_RPM_PACKAGE_REQUIRES "qt6-qtbase, qt6-qtdeclarative")
 endif()
 

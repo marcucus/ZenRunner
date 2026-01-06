@@ -85,10 +85,10 @@ While ZenRunner is secure, the scripts it executes have the same permissions as 
 
 ## Reported Vulnerabilities
 
-We take security seriously. If you discover a security vulnerability, please report it to:
+We take security seriously. If you discover a security vulnerability, please report it responsibly:
 
-- **Email**: [To be configured by project maintainer]
-- **GitHub Security Advisories**: Use private security reporting on GitHub
+- **GitHub Security Advisories**: Use the [private security reporting feature](https://github.com/marcucus/ZenRunner/security/advisories) on GitHub (recommended)
+- **GitHub Issues**: For non-security bugs, use regular [GitHub Issues](https://github.com/marcucus/ZenRunner/issues)
 
 **Please do not** report security vulnerabilities through public GitHub issues.
 

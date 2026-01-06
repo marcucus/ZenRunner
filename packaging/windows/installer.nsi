@@ -8,6 +8,16 @@
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
 !include "x64.nsh"
+!include "LogicLib.nsh"
+!include "StrFunc.nsh"
+
+; Constants for environment notification
+!define HWND_BROADCAST 0xffff
+!define WM_WININICHANGE 0x001A
+
+; Initialize StrFunc functions
+${StrStr}
+${StrRep}
 
 ;--------------------------------
 ; General Configuration
@@ -24,11 +34,11 @@
 Name "${APPNAME}"
 OutFile "..\..\build\ZenRunner-Setup-${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD}.exe"
 
-; Default installation directory
-InstallDir "$PROGRAMFILES64\${APPNAME}"
+; Default installation directory (user's local AppData)
+InstallDir "$LOCALAPPDATA\Programs\${APPNAME}"
 
 ; Get installation directory from registry if available
-InstallDirRegKey HKLM "Software\${APPNAME}" "InstallDir"
+InstallDirRegKey HKCU "Software\${APPNAME}" "InstallDir"
 
 ; Request application privileges (normal user - not admin)
 RequestExecutionLevel user
@@ -110,25 +120,25 @@ Section "Core Application" SecCore
     ; Create uninstaller
     WriteUninstaller "$INSTDIR\Uninstall.exe"
     
-    ; Write registry keys for Add/Remove Programs
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayName" "${APPNAME}"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "QuietUninstallString" "$\"$INSTDIR\Uninstall.exe$\" /S"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "InstallLocation" "$INSTDIR"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "Publisher" "${COMPANYNAME}"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayVersion" "${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD}"
-    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "VersionMajor" ${VERSIONMAJOR}
-    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "VersionMinor" ${VERSIONMINOR}
-    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "NoModify" 1
-    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "NoRepair" 1
+    ; Write registry keys for Add/Remove Programs (using HKCU for user-level install)
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayName" "${APPNAME}"
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "QuietUninstallString" "$\"$INSTDIR\Uninstall.exe$\" /S"
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "InstallLocation" "$INSTDIR"
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "Publisher" "${COMPANYNAME}"
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayVersion" "${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD}"
+    WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "VersionMajor" ${VERSIONMAJOR}
+    WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "VersionMinor" ${VERSIONMINOR}
+    WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "NoModify" 1
+    WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "NoRepair" 1
     
     ; Store installation directory
-    WriteRegStr HKLM "Software\${APPNAME}" "InstallDir" "$INSTDIR"
+    WriteRegStr HKCU "Software\${APPNAME}" "InstallDir" "$INSTDIR"
     
     ; Get installed size
     ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
     IntFmt $0 "0x%08X" $0
-    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "EstimatedSize" "$0"
+    WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "EstimatedSize" "$0"
     
 SectionEnd
 
@@ -143,10 +153,20 @@ Section "Desktop Shortcut" SecDesktop
 SectionEnd
 
 Section /o "Add to PATH" SecPath
-    ; Add installation directory to user PATH
-    EnVar::AddValue "PATH" "$INSTDIR"
-    Pop $0
-    DetailPrint "Added to PATH: $0"
+    ; Add installation directory to user PATH using standard NSIS functions
+    ; Read current PATH
+    ReadRegStr $0 HKCU "Environment" "Path"
+    
+    ; Check if already in PATH
+    ${StrStr} $1 $0 "$INSTDIR"
+    StrCmp $1 "" 0 +3
+        ; Not in PATH, add it
+        StrCpy $0 "$0;$INSTDIR"
+        WriteRegExpandStr HKCU "Environment" "Path" "$0"
+    
+    ; Notify system of environment change
+    SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+    DetailPrint "Added to PATH: $INSTDIR"
 SectionEnd
 
 ;--------------------------------
@@ -184,13 +204,22 @@ Section "Uninstall"
     RMDir "$SMPROGRAMS\${APPNAME}"
     Delete "$DESKTOP\${APPNAME}.lnk"
     
-    ; Remove registry keys
-    DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
-    DeleteRegKey HKLM "Software\${APPNAME}"
+    ; Remove registry keys (from HKCU for user-level install)
+    DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
+    DeleteRegKey HKCU "Software\${APPNAME}"
     
     ; Remove from PATH if present
-    EnVar::DeleteValue "PATH" "$INSTDIR"
-    Pop $0
+    ReadRegStr $0 HKCU "Environment" "Path"
+    ${StrStr} $1 $0 "$INSTDIR"
+    StrCmp $1 "" PathNotFound
+        ; Remove from PATH
+        ${StrRep} $0 $0 ";$INSTDIR" ""
+        ${StrRep} $0 $0 "$INSTDIR;" ""
+        ${StrRep} $0 $0 "$INSTDIR" ""
+        WriteRegExpandStr HKCU "Environment" "Path" "$0"
+        ; Notify system of environment change
+        SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+    PathNotFound:
     
 SectionEnd
 
@@ -198,8 +227,8 @@ SectionEnd
 ; Functions
 
 Function .onInit
-    ; Check if already installed
-    ReadRegStr $R0 HKLM "Software\${APPNAME}" "InstallDir"
+    ; Check if already installed (check HKCU for user-level install)
+    ReadRegStr $R0 HKCU "Software\${APPNAME}" "InstallDir"
     StrCmp $R0 "" done
     
     MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \

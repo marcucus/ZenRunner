@@ -182,27 +182,34 @@ create_dmg() {
     
     sleep 2
     
-    # Set DMG window properties (optional, requires AppleScript)
+    # Set DMG window properties (optional, requires AppleScript and GUI access)
     if command -v osascript &> /dev/null; then
-        print_info "Configuring DMG window..."
-        osascript <<EOF
+        print_info "Configuring DMG window (optional)..."
+        # Try to configure window, but don't fail if it doesn't work
+        osascript <<EOF 2>/dev/null || print_info "AppleScript configuration skipped (may require GUI access)"
 tell application "Finder"
-    tell disk "$VOLUME_NAME"
-        open
-        set current view of container window to icon view
-        set toolbar visible of container window to false
-        set statusbar visible of container window to false
-        set the bounds of container window to {100, 100, 600, 400}
-        set viewOptions to the icon view options of container window
-        set arrangement of viewOptions to not arranged
-        set icon size of viewOptions to 128
-        set position of item "$BUNDLE_NAME" of container window to {150, 150}
-        set position of item "Applications" of container window to {350, 150}
-        update without registering applications
-        delay 2
-    end tell
+    try
+        tell disk "$VOLUME_NAME"
+            open
+            set current view of container window to icon view
+            set toolbar visible of container window to false
+            set statusbar visible of container window to false
+            set the bounds of container window to {100, 100, 600, 400}
+            set viewOptions to the icon view options of container window
+            set arrangement of viewOptions to not arranged
+            set icon size of viewOptions to 128
+            set position of item "$BUNDLE_NAME" of container window to {150, 150}
+            set position of item "Applications" of container window to {350, 150}
+            update without registering applications
+            delay 2
+        end tell
+    on error errMsg
+        log "Window configuration failed: " & errMsg
+    end try
 end tell
 EOF
+    else
+        print_info "osascript not available, skipping window configuration"
     fi
     
     # Unmount DMG
