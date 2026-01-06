@@ -3,16 +3,20 @@
 #include <QString>
 #include <QStringList>
 #include <cstddef>
+#include "IAnsiParser.hpp"
 
 namespace ZenRunner::Core {
 
 /**
- * @brief Log entry structure
+ * @brief Log entry structure with ANSI color support
  */
 struct LogEntry {
-    QString text;               ///< Log text content
-    qint64 timestamp;           ///< Timestamp (milliseconds since epoch)
-    bool isError{false};        ///< Whether this is an error message
+    QString text;                           ///< Log text content (with or without ANSI codes)
+    QString plainText;                      ///< Plain text without ANSI codes
+    qint64 timestamp;                       ///< Timestamp (milliseconds since epoch)
+    bool isError{false};                    ///< Whether this is an error message
+    std::vector<StyledSegment> segments;    ///< Styled text segments (parsed ANSI)
+    bool hasAnsiCodes{false};               ///< Whether the original text had ANSI codes
 };
 
 /**

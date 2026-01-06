@@ -21,7 +21,10 @@ public:
         TextRole = Qt::UserRole + 1,
         TimestampRole,
         IsErrorRole,
-        FormattedTimeRole
+        FormattedTimeRole,
+        PlainTextRole,
+        HasAnsiCodesRole,
+        StyledSegmentsRole
     };
 
     explicit LogViewModel(QObject* parent = nullptr)
@@ -149,6 +152,15 @@ public:
                 const QDateTime dt = QDateTime::fromMSecsSinceEpoch(entry.timestamp);
                 return dt.toString("hh:mm:ss.zzz");
             }
+            
+            case PlainTextRole:
+                return entry.plainText;
+                
+            case HasAnsiCodesRole:
+                return entry.hasAnsiCodes;
+                
+            case StyledSegmentsRole:
+                return convertSegmentsToVariant(entry.segments);
                 
             default:
                 return QVariant();
@@ -160,7 +172,10 @@ public:
             {TextRole, "text"},
             {TimestampRole, "timestamp"},
             {IsErrorRole, "isError"},
-            {FormattedTimeRole, "formattedTime"}
+            {FormattedTimeRole, "formattedTime"},
+            {PlainTextRole, "plainText"},
+            {HasAnsiCodesRole, "hasAnsiCodes"},
+            {StyledSegmentsRole, "styledSegments"}
         };
         return roles;
     }
@@ -170,6 +185,29 @@ private:
     std::vector<Core::LogEntry> filteredLogs_;
     QString filter_;
     bool showErrorsOnly_;
+    
+    /**
+     * @brief Convert styled segments to QVariantList for QML
+     * @param segments Vector of styled segments
+     * @return QVariantList containing segment data
+     */
+    QVariant convertSegmentsToVariant(const std::vector<Core::StyledSegment>& segments) const {
+        QVariantList result;
+        
+        for (const auto& seg : segments) {
+            QVariantMap segmentMap;
+            segmentMap["text"] = seg.text;
+            segmentMap["fgColor"] = seg.foregroundColor.name();
+            segmentMap["bgColor"] = seg.backgroundColor.name();
+            segmentMap["bold"] = seg.bold;
+            segmentMap["italic"] = seg.italic;
+            segmentMap["underline"] = seg.underline;
+            
+            result.append(segmentMap);
+        }
+        
+        return result;
+    }
 };
 
 // Factory function

@@ -130,14 +130,15 @@ GlassCard {
                 
                 delegate: Item {
                     width: logView.width
-                    height: logLine.height + 4
+                    height: logLineContainer.height + 4
                     
                     Row {
+                        id: logLineContainer
                         spacing: 8
                         
                         // Timestamp
                         Text {
-                            text: model.timestamp
+                            text: model.formattedTime || model.timestamp
                             font.pixelSize: 11
                             font.family: "monospace"
                             color: "#666666"
@@ -152,33 +153,59 @@ GlassCard {
                             radius: 3
                             anchors.verticalCenter: parent.verticalCenter
                             color: {
-                                switch(model.level) {
-                                    case "error": return "#ef4444"
-                                    case "warning": return "#fbbf24"
-                                    case "success": return "#4ade80"
-                                    case "info":
-                                    default: return "#3b82f6"
-                                }
+                                if (model.isError) return "#ef4444"
+                                return "#3b82f6"
                             }
                         }
                         
                         // Log text with ANSI color support
-                        Text {
-                            id: logLine
-                            text: model.text
-                            font.pixelSize: 12
-                            font.family: "monospace"
-                            color: {
-                                switch(model.level) {
-                                    case "error": return "#f87171"
-                                    case "warning": return "#fcd34d"
-                                    case "success": return "#86efac"
-                                    default: return "#e5e7eb"
+                        Item {
+                            width: logView.width - 100
+                            height: logTextFlow.height
+                            anchors.verticalCenter: parent.verticalCenter
+                            
+                            // Use Flow to render styled segments inline
+                            Flow {
+                                id: logTextFlow
+                                width: parent.width
+                                
+                                // Check if we have styled segments (ANSI codes)
+                                Repeater {
+                                    model: styledSegments || []
+                                    
+                                    delegate: Text {
+                                        text: modelData.text
+                                        font.pixelSize: 12
+                                        font.family: "monospace"
+                                        font.bold: modelData.bold || false
+                                        font.italic: modelData.italic || false
+                                        font.underline: modelData.underline || false
+                                        color: modelData.fgColor || "#e5e7eb"
+                                        wrapMode: Text.NoWrap
+                                        renderType: Text.NativeRendering
+                                        
+                                        // Background color support (if not transparent)
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            color: modelData.bgColor || "transparent"
+                                            z: -1
+                                            visible: modelData.bgColor && modelData.bgColor !== "#000000" && modelData.bgColor !== "transparent"
+                                        }
+                                    }
+                                }
+                                
+                                // Fallback: plain text if no styled segments
+                                Text {
+                                    text: model.plainText || model.text
+                                    font.pixelSize: 12
+                                    font.family: "monospace"
+                                    color: model.isError ? "#f87171" : "#e5e7eb"
+                                    wrapMode: Text.Wrap
+                                    width: logTextFlow.width
+                                    renderType: Text.NativeRendering
+                                    visible: !model.hasAnsiCodes
                                 }
                             }
-                            wrapMode: Text.Wrap
-                            width: logView.width - 100
-                            renderType: Text.NativeRendering  // Better performance
                         }
                     }
                 }
