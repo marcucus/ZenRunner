@@ -89,6 +89,7 @@ int main(int argc, char *argv[]) {
     qDebug() << "Auto-save enabled (60 second interval)";
     
     // Create Native Platform Manager for system tray and notifications
+    // Note: Stack allocation is safe here - lives until app.exec() returns
     Platform::NativePlatformManager platformManager;
     
     // Initialize system tray
@@ -99,6 +100,7 @@ int main(int argc, char *argv[]) {
     }
     
     // Create ProcessManager instance for managing all processes
+    // Note: Stack allocation is safe here - lives until app.exec() returns
     ProcessManager processManager;
     
     // Create ProjectManager instance
@@ -202,9 +204,9 @@ int main(int argc, char *argv[]) {
             qDebug() << "Stopping" << processManager.runningCount() << "running processes...";
             processManager.stopAll(5000);  // 5 second timeout for graceful termination
             
-            // Give processes time to terminate gracefully
-            // The ProcessManager will handle SIGTERM -> SIGKILL fallback
-            QThread::msleep(100);  // Brief wait to let signals propagate
+            // Allow event loop to process termination signals
+            // The ProcessManager destructor will force kill any remaining processes
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
         }
         
         qDebug() << "Saving application state...";
