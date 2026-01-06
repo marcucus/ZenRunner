@@ -19,6 +19,7 @@ public:
         : capacity_(capacity)
         , buffer_(std::make_unique<CircularBuffer<LogEntry, 5000>>())
         , ansiParser_(createAnsiParser())
+        , updateCallback_(nullptr)
     {
         // Pre-allocate if capacity is different from default
         // For simplicity, we use the fixed-size template parameter
@@ -28,6 +29,7 @@ public:
 
     void append(const LogEntry& entry) override {
         buffer_->emplace(entry);
+        notifyUpdate();
     }
 
     void append(const QString& text, bool isError = false) override {
@@ -51,6 +53,7 @@ public:
         }
         
         buffer_->emplace(std::move(entry));
+        notifyUpdate();
     }
 
     std::vector<LogEntry> getAll() const override {
@@ -127,10 +130,21 @@ public:
         // 3. Swap the buffers
     }
 
+    void setUpdateCallback(std::function<void()> callback) override {
+        updateCallback_ = callback;
+    }
+
 private:
     size_t capacity_;
     std::unique_ptr<CircularBuffer<LogEntry, 5000>> buffer_;
     std::unique_ptr<IAnsiParser> ansiParser_;
+    std::function<void()> updateCallback_;
+    
+    void notifyUpdate() {
+        if (updateCallback_) {
+            updateCallback_();
+        }
+    }
 };
 
 // Factory function to create LogBuffer instances
