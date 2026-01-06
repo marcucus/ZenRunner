@@ -256,6 +256,17 @@ signals:
      */
     void processError(const QString& id, const QString& error);
 
+    /**
+     * @brief Emitted when a process crashes
+     * 
+     * This signal is emitted specifically for crash events (CrashExit),
+     * allowing immediate user notification through the notification system.
+     * 
+     * @param id Process identifier
+     * @param exitCode Exit code of the crashed process
+     */
+    void processCrashed(const QString& id, int exitCode);
+
 private:
     void connectProcessSignals(const QString& id, AsyncProcess* process);
 
