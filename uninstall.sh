@@ -172,7 +172,10 @@ remove_desktop_integration() {
         
         # Update desktop database if possible
         if command -v update-desktop-database >/dev/null 2>&1; then
-            update-desktop-database "$HOME/.local/share/applications/" 2>/dev/null || true
+            print_info "Updating desktop database..."
+            if ! update-desktop-database "$HOME/.local/share/applications/" 2>/dev/null; then
+                print_warning "Failed to update desktop database (non-critical)"
+            fi
         fi
         
         removed=true

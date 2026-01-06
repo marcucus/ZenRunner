@@ -116,8 +116,17 @@ function Test-Dependencies {
     
     # Check CMake
     if (Test-CommandExists "cmake") {
-        $cmakeVersion = (cmake --version | Select-String -Pattern "cmake version (.+)").Matches.Groups[1].Value
-        Write-Success "CMake $cmakeVersion found"
+        try {
+            $cmakeOutput = cmake --version 2>&1 | Select-Object -First 1
+            $cmakeVersion = $cmakeOutput -replace '.*version\s+', '' -replace '\s+.*', ''
+            if ($cmakeVersion) {
+                Write-Success "CMake $cmakeVersion found"
+            } else {
+                Write-Success "CMake found"
+            }
+        } catch {
+            Write-Success "CMake found"
+        }
     } else {
         $missingDeps += "cmake"
     }

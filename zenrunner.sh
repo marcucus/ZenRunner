@@ -57,9 +57,20 @@ find_zenrunner() {
     return 1
 }
 
+# Detect OS once at the start
+detect_os() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        OS="macos"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        OS="linux"
+    else
+        OS="unknown"
+    fi
+}
+
 # Set up Qt environment for macOS if needed
 setup_macos_environment() {
-    if [[ "$OSTYPE" == "darwin"* ]]; then
+    if [ "$OS" = "macos" ]; then
         # Check for Homebrew Qt installation
         if [ -d "/opt/homebrew/opt/qt@6" ]; then
             export DYLD_LIBRARY_PATH="/opt/homebrew/opt/qt@6/lib:$DYLD_LIBRARY_PATH"
@@ -73,7 +84,7 @@ setup_macos_environment() {
 
 # Set up Qt environment for Linux if needed
 setup_linux_environment() {
-    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    if [ "$OS" = "linux" ]; then
         # Add common Qt library paths
         if [ -d "/usr/lib/x86_64-linux-gnu/qt6" ]; then
             export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/qt6:$LD_LIBRARY_PATH"
@@ -91,6 +102,9 @@ main() {
     echo "║                                            ║"
     echo "╚════════════════════════════════════════════╝"
     echo ""
+    
+    # Detect OS once
+    detect_os
     
     # Find ZenRunner executable
     print_info "Searching for ZenRunner executable..."

@@ -194,7 +194,17 @@ build_application() {
     
     # Build
     print_info "Compiling (this may take a few minutes)..."
-    local num_cores=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)
+    # Detect number of CPU cores with reasonable fallback
+    local num_cores
+    if command -v nproc >/dev/null 2>&1; then
+        num_cores=$(nproc)
+    elif command -v sysctl >/dev/null 2>&1; then
+        num_cores=$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
+    else
+        # Fallback to 4 cores (reasonable for modern systems)
+        num_cores=4
+        print_info "Could not detect CPU cores, using $num_cores parallel jobs"
+    fi
     cmake --build . --config $BUILD_TYPE -j$num_cores
     
     cd ..
