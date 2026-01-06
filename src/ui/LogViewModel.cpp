@@ -45,18 +45,24 @@ public:
 
     // ILogViewModel interface
     void setLogBuffer(std::shared_ptr<Core::ILogBuffer> logBuffer) override {
-        if (logBuffer_ != logBuffer) {
+        bool bufferChanged = (logBuffer_ != logBuffer);
+        
+        if (bufferChanged) {
             logBuffer_ = logBuffer;
             
             // Setup callback for throttled updates when logs are added
+            // Use QMetaObject::invokeMethod to ensure callback runs in UI thread
             if (logBuffer_) {
                 logBuffer_->setUpdateCallback([this]() {
-                    requestLogUpdate();
+                    // Ensure this executes in the LogViewModel's thread (UI thread)
+                    QMetaObject::invokeMethod(this, &LogViewModel::requestLogUpdate, Qt::QueuedConnection);
                 });
             }
-            
-            scheduleThrottledRefresh();
         }
+        
+        // Always schedule refresh when setLogBuffer is called
+        // This ensures UI updates even when reconnecting the same buffer
+        scheduleThrottledRefresh();
     }
 
     std::shared_ptr<Core::ILogBuffer> getLogBuffer() const override {
