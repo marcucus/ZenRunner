@@ -22,6 +22,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     Gui
     Quick
     Widgets
+    Test
 )
 
 # Include directories - Public API interfaces
@@ -198,6 +199,27 @@ target_link_libraries(test_logbuffer_ansi_integration PRIVATE
 
 set_target_properties(test_logbuffer_ansi_integration PROPERTIES
     OUTPUT_NAME "test_logbuffer_ansi"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+# Log Throttling Test
+add_executable(test_log_throttling
+    src/test_log_throttling.cpp
+    src/core/LogBuffer.cpp
+    src/core/AnsiParser.cpp
+    src/ui/LogViewModel.cpp
+    src/ui/ILogViewModel.cpp
+    include/ui/ILogViewModel.hpp
+)
+
+target_link_libraries(test_log_throttling PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+)
+
+set_target_properties(test_log_throttling PROPERTIES
+    OUTPUT_NAME "test_log_throttling"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
