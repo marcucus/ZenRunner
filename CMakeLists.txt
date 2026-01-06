@@ -324,11 +324,26 @@ endif()
 # ========================================
 # Installation
 # ========================================
-# install(TARGETS ${PROJECT_NAME}
-#     RUNTIME DESTINATION bin
-#     LIBRARY DESTINATION lib
-#     ARCHIVE DESTINATION lib
-# )
+install(TARGETS ${PROJECT_NAME}
+    BUNDLE DESTINATION . COMPONENT Runtime
+    RUNTIME DESTINATION bin COMPONENT Runtime
+)
+
+# Install Qt dependencies on macOS
+if(APPLE)
+    install(CODE "
+        include(BundleUtilities)
+        fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}.app\" \"\" \"\")
+    " COMPONENT Runtime)
+endif()
+
+# Install documentation
+install(FILES
+    ${CMAKE_SOURCE_DIR}/README.md
+    ${CMAKE_SOURCE_DIR}/INSTALL.md
+    DESTINATION share/doc/${PROJECT_NAME}
+    COMPONENT Documentation
+)
 
 # ========================================
 # Interface-only library for testing
@@ -344,3 +359,62 @@ target_link_libraries(ZenRunnerInterfaces INTERFACE
     Qt6::Quick
     Qt6::Widgets
 )
+
+# ========================================
+# CPack Configuration for Packaging
+# ========================================
+set(CPACK_PACKAGE_NAME "ZenRunner")
+set(CPACK_PACKAGE_VENDOR "ZenRunner Project")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A high-performance native process manager for developers")
+set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "ZenRunner")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE.txt")
+set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
+
+# Platform-specific packaging
+if(WIN32)
+    # NSIS installer for Windows
+    set(CPACK_GENERATOR "NSIS;ZIP")
+    set(CPACK_NSIS_DISPLAY_NAME "ZenRunner")
+    set(CPACK_NSIS_PACKAGE_NAME "ZenRunner")
+    set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
+    set(CPACK_NSIS_MODIFY_PATH ON)
+    set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/packaging/windows/icon.ico")
+    set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/packaging/windows/icon.ico")
+    set(CPACK_NSIS_HELP_LINK "https://github.com/marcucus/ZenRunner")
+    set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/marcucus/ZenRunner")
+    set(CPACK_NSIS_CONTACT "https://github.com/marcucus/ZenRunner/issues")
+    set(CPACK_NSIS_CREATE_ICONS_EXTRA
+        "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\ZenRunner.lnk' '$INSTDIR\\\\bin\\\\ZenRunner.exe'"
+    )
+    set(CPACK_NSIS_DELETE_ICONS_EXTRA
+        "Delete '$SMPROGRAMS\\\\$START_MENU\\\\ZenRunner.lnk'"
+    )
+elseif(APPLE)
+    # DMG for macOS
+    set(CPACK_GENERATOR "DragNDrop")
+    set(CPACK_DMG_VOLUME_NAME "ZenRunner")
+    set(CPACK_DMG_FORMAT "UDZO")
+    set(CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_SOURCE_DIR}/packaging/macos/background.png")
+    set(CPACK_BUNDLE_NAME "ZenRunner")
+    set(CPACK_BUNDLE_PLIST "${CMAKE_SOURCE_DIR}/packaging/macos/Info.plist")
+elseif(UNIX)
+    # DEB and RPM for Linux
+    set(CPACK_GENERATOR "DEB;RPM;TGZ")
+    
+    # Debian package settings
+    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "ZenRunner Project")
+    set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
+    set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "qt6-base, qt6-declarative")
+    
+    # RPM package settings
+    set(CPACK_RPM_PACKAGE_GROUP "Development/Tools")
+    set(CPACK_RPM_PACKAGE_LICENSE "TBD")
+    set(CPACK_RPM_PACKAGE_REQUIRES "qt6-qtbase, qt6-qtdeclarative")
+endif()
+
+include(CPack)

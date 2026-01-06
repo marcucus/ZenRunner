@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Basic Application Information -->
+    <key>CFBundleName</key>
+    <string>ZenRunner</string>
+    
+    <key>CFBundleDisplayName</key>
+    <string>ZenRunner</string>
+    
+    <key>CFBundleIdentifier</key>
+    <string>com.zenrunner.app</string>
+    
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
+    
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    
+    <key>CFBundleSignature</key>
+    <string>????</string>
+    
+    <key>CFBundleExecutable</key>
+    <string>ZenRunner</string>
+    
+    <!-- Icon -->
+    <key>CFBundleIconFile</key>
+    <string>ZenRunner.icns</string>
+    
+    <!-- High Resolution Support -->
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    
+    <!-- Required for Qt applications -->
+    <key>LSMinimumSystemVersion</key>
+    <string>10.15</string>
+    
+    <!-- Copyright and Info -->
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2024 ZenRunner Project. All rights reserved.</string>
+    
+    <key>CFBundleGetInfoString</key>
+    <string>ZenRunner 1.0.0 - A high-performance native process manager for developers</string>
+    
+    <!-- Category -->
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.developer-tools</string>
+    
+    <!-- Document Types (optional - for future use) -->
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>JSON Configuration</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.json</string>
+            </array>
+        </dict>
+    </array>
+    
+    <!-- Permissions and Security -->
+    
+    <!-- User Selected Files (Full Disk Access not required) -->
+    <key>NSRequiresAquaSystemAppearance</key>
+    <false/>
+    
+    <!-- Allow running processes -->
+    <key>LSEnvironment</key>
+    <dict>
+        <key>MallocNanoZone</key>
+        <string>0</string>
+    </dict>
+    
+    <!-- URL Schemes (for future use) -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>ZenRunner Protocol</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>zenrunner</string>
+            </array>
+        </dict>
+    </array>
+    
+    <!-- Services Menu (optional) -->
+    <key>NSServices</key>
+    <array>
+        <dict>
+            <key>NSMenuItem</key>
+            <dict>
+                <key>default</key>
+                <string>Open with ZenRunner</string>
+            </dict>
+            <key>NSMessage</key>
+            <string>openFile</string>
+            <key>NSPortName</key>
+            <string>ZenRunner</string>
+            <key>NSSendTypes</key>
+            <array>
+                <string>NSFilenamesPboardType</string>
+            </array>
+        </dict>
+    </array>
+    
+    <!-- Support Dark Mode -->
+    <key>NSSupportsAutomaticGraphicsSwitching</key>
+    <true/>
+    
+    <!-- Retina Display Support -->
+    <key>NSSupportsHiDPI</key>
+    <true/>
+    
+    <!-- Qt-specific entries -->
+    <key>QT_MAC_WANTS_LAYER</key>
+    <string>1</string>
+    
+    <!-- Notarization -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+</dict>
+</plist>
