@@ -94,6 +94,22 @@ We take security seriously. If you discover a security vulnerability, please rep
 
 ## Security Auditing
 
+### Automated Validation
+
+Use the provided security validation script to check that a built executable follows security best practices:
+
+```bash
+./scripts/validate-security.sh
+```
+
+This script checks for:
+- No setuid/setgid bits (Unix/Linux/macOS)
+- Reasonable binary size
+- No debug symbols in release builds
+- Proper Qt dependencies
+- Correct file permissions
+- No suspicious hardcoded system paths
+
 ### Static Analysis
 
 The project uses:

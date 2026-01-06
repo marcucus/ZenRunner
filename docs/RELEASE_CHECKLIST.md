@@ -21,6 +21,7 @@ This checklist should be followed when preparing a new release of ZenRunner.
 
 ### Security Review
 - [ ] Review [SECURITY.md](SECURITY.md) guidelines
+- [ ] Run security validation script: `./scripts/validate-security.sh`
 - [ ] Verify no hardcoded credentials or secrets
 - [ ] Verify no elevated privilege requirements
 - [ ] Test process isolation works correctly
