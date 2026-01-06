@@ -77,6 +77,9 @@ set(CORE_SOURCES
     src/core/MemoryMonitor.cpp
     src/core/AnsiParser.cpp
     include/core/IAnsiParser.hpp
+    src/core/ProcessResourceMonitor.cpp
+    include/core/ProcessResourceMonitor.h
+    include/core/IProcessResourceMonitor.hpp
 )
 
 # Platform Layer sources
@@ -112,6 +115,8 @@ set(UI_SOURCES
     include/ui/IProjectManager.hpp
     src/ui/ProjectManager.cpp
     include/ui/ProjectManager.h
+    src/ui/StatisticsViewModel.cpp
+    include/ui/StatisticsViewModel.h
 )
 
 # Factory implementation (to be implemented)
@@ -193,6 +198,9 @@ target_link_libraries(test_logbuffer_ansi_integration PRIVATE
 
 set_target_properties(test_logbuffer_ansi_integration PROPERTIES
     OUTPUT_NAME "test_logbuffer_ansi"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
 # ProjectRepository Test
 add_executable(test_project_repository
     src/test_project_repository.cpp
@@ -228,6 +236,23 @@ target_link_libraries(test_application_state PRIVATE
 
 set_target_properties(test_application_state PROPERTIES
     OUTPUT_NAME "test_application_state"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+# ProcessResourceMonitor Test
+add_executable(test_resource_monitor
+    src/test_resource_monitor.cpp
+    src/core/ProcessResourceMonitor.cpp
+    include/core/ProcessResourceMonitor.h
+    include/core/IProcessResourceMonitor.hpp
+)
+
+target_link_libraries(test_resource_monitor PRIVATE
+    Qt6::Core
+)
+
+set_target_properties(test_resource_monitor PROPERTIES
+    OUTPUT_NAME "test_resource_monitor"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
