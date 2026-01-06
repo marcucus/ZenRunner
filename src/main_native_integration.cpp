@@ -5,6 +5,7 @@
 #include "ui/ProjectManager.h"
 #include "types/CommonTypes.h"
 #include "platform/NativePlatformManager.h"
+#include "platform/PlatformHelper.h"
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -24,6 +25,7 @@ using namespace ZenRunner;
  * - macOS: Vibrancy effect and notch detection
  * - System tray with real-time status icons
  * - Native notifications
+ * - Dynamic Island-like quick controls (macOS)
  */
 int main(int argc, char *argv[]) {
     // Enable GPU acceleration and optimal rendering settings
@@ -43,6 +45,9 @@ int main(int argc, char *argv[]) {
     // Create Native Platform Manager
     Platform::NativePlatformManager platformManager;
     
+    // Create Platform Helper for QML
+    Platform::PlatformHelper platformHelper;
+    
     // Initialize system tray
     if (platformManager.initializeSystemTray()) {
         qDebug() << "System tray initialized successfully";
@@ -56,15 +61,16 @@ int main(int argc, char *argv[]) {
     // Create QML engine
     QQmlApplicationEngine engine;
     
-    // Expose ProjectManager to QML
+    // Expose managers to QML
     engine.rootContext()->setContextProperty("projectManager", &projectManager);
     engine.rootContext()->setContextProperty("platformManager", &platformManager);
+    engine.rootContext()->setContextProperty("platformHelper", &platformHelper);
     
     // Load main QML file
     const QUrl url(QStringLiteral("qrc:/ui/Main.qml"));
     
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
-                     &app, [url, &platformManager](QObject *obj, const QUrl &objUrl) {
+                     &app, [url, &platformManager, &platformHelper](QObject *obj, const QUrl &objUrl) {
         if (!obj && url == objUrl) {
             QCoreApplication::exit(-1);
             return;
@@ -79,6 +85,9 @@ int main(int argc, char *argv[]) {
                 } else {
                     qDebug() << "Native effects not available on this platform";
                 }
+                
+                // Update safe area insets for notch detection (macOS)
+                platformHelper.updateSafeAreaInsets(window);
             }
         }
     }, Qt::QueuedConnection);

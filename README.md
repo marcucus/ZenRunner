@@ -42,9 +42,10 @@ User interface components:
 
 ### `/src/platform/`
 OS-specific implementations:
-- Windows: Mica effect integration
-- macOS: Vibrancy effects and Notch detection
-- Cross-platform: System tray and notifications
+- Windows: Mica effect integration via DWM API
+- macOS: Vibrancy effects via NSVisualEffectView and Notch detection
+- Cross-platform: System tray with real-time status icons and context menu
+- Platform helpers for QML integration
 
 ### `/include/`
 Public APIs and shared definitions:
@@ -52,7 +53,7 @@ Public APIs and shared definitions:
 - Common types and enumerations
 - Forward declarations for reduced dependencies
 
-## Key Features (Planned)
+## Key Features
 
 - ⚡ **Ultra-lightweight**: < 30MB RAM usage
 - 🎨 **Native UI**: Glassmorphism with OS-specific materials (Mica/Vibrancy)
@@ -60,7 +61,13 @@ Public APIs and shared definitions:
 - 🗂️ **Workspace Management**: Group projects and launch with batch actions (sequential/parallel)
 - 🔄 **Process Control**: Start, stop, and monitor multiple development processes
 - 📊 **Live Logs**: ANSI color support with circular buffering
-- 🌐 **System Integration**: Tray icon, notifications, native effects
+- 🌐 **System Integration**: 
+  - Real-time system tray with color-coded status (Gray/Green/Red/Orange)
+  - Native notifications with click handling
+  - Context menu with quick actions
+  - Minimize to tray functionality
+- 🍎 **macOS Notch Support**: Dynamic Island-like quick control positioning
+- 🪟 **Windows 11 Mica**: Native translucent background effect
 
 ## Workspace System
 
@@ -104,6 +111,35 @@ See [Workspace Guide](docs/WORKSPACE_GUIDE.md) for detailed documentation.
 2. **Performance**: Native code with manual memory management
 3. **Native Integration**: Deep OS-level features, not web wrappers
 4. **Developer Focus**: Optimized for development workflow efficiency
+
+## Native OS Integration
+
+ZenRunner integrates deeply with native operating system APIs for optimal performance and user experience:
+
+### Windows 11
+- **Mica Material**: Uses DWM (Desktop Window Manager) API to apply Mica effect
+- Samples desktop wallpaper for dynamic, translucent background
+- Automatically adapts to light/dark theme changes
+- Available in standard and alt (darker) variants
+
+### macOS
+- **Vibrancy Effect**: Uses NSVisualEffectView for native blur and translucency
+- **Notch Detection**: Detects MacBook Pro notch via safeAreaInsets API
+- **Dynamic Island-like Controls**: QuickControlBar positions itself around the notch
+- Automatic dark/light mode adaptation
+
+### System Tray / Menu Bar
+- **Cross-platform**: Works on Windows, macOS, and Linux
+- **Real-time Status**: Color-coded icons (Gray/Green/Red/Orange)
+  - Gray: Idle (no processes running)
+  - Green: Active (processes running normally)
+  - Red: Error (process crashed)
+  - Orange: Warning state
+- **Context Menu**: Quick actions for show/hide, workspace control, and quit
+- **Native Notifications**: OS-native notification system with click handling
+- **Minimize to Tray**: Run in background without closing
+
+See [docs/NATIVE_INTEGRATION.md](docs/NATIVE_INTEGRATION.md) for detailed integration guide and API reference.
 
 ## Building
 

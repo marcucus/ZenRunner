@@ -87,6 +87,8 @@ set(PLATFORM_SOURCES
     include/platform/SystemTray.h
     src/platform/NativePlatformManager.cpp
     include/platform/NativePlatformManager.h
+    src/platform/PlatformHelper.cpp
+    include/platform/PlatformHelper.h
 )
 
 # Storage Layer sources
