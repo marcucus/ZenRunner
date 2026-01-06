@@ -3,6 +3,7 @@
 #include <QString>
 #include <QStringList>
 #include <cstddef>
+#include <functional>
 #include "IAnsiParser.hpp"
 
 namespace ZenRunner::Core {
@@ -104,6 +105,12 @@ public:
      * @param newCapacity New maximum number of entries
      */
     virtual void setCapacity(size_t newCapacity) = 0;
+
+    /**
+     * @brief Set a callback to be invoked when logs are added
+     * @param callback Function to call when logs are added (for throttled UI updates)
+     */
+    virtual void setUpdateCallback(std::function<void()> callback) = 0;
 };
 
 } // namespace ZenRunner::Core

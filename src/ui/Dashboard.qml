@@ -267,10 +267,20 @@ Item {
                     // workspaceViewModel: workspaceViewModelInstance
                 }
                 
+                // Statistics panel
+                Statistics {
+                    id: statisticsPanel
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    
+                    // This property will be set from C++ (main.cpp)
+                    // statisticsViewModel: statisticsViewModelInstance
+                }
+                
                 // System status panel
                 GlassCard {
                     Layout.fillWidth: true
-                    Layout.fillHeight: true
+                    Layout.preferredHeight: 150
                     glassOpacity: 0.1
                     
                     ColumnLayout {

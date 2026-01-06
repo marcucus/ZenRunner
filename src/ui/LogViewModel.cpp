@@ -1,17 +1,19 @@
 #include "LogViewModel.h"
 #include <QDateTime>
+#include <QTimer>
 #include <algorithm>
 
 namespace ZenRunner::UI {
 
 /**
- * @brief Memory-efficient LogViewModel implementation
+ * @brief Memory-efficient LogViewModel implementation with throttling
  * 
  * This implementation:
  * - Uses lazy loading - only materializes visible data
  * - Avoids copying log entries when possible
  * - Uses Qt's implicit sharing for strings
  * - Minimizes signal emissions to reduce overhead
+ * - Implements throttling to prevent log flood from overwhelming UI
  */
 class LogViewModel : public ILogViewModel {
     Q_OBJECT
@@ -30,18 +32,37 @@ public:
     explicit LogViewModel(QObject* parent = nullptr)
         : ILogViewModel(parent)
         , showErrorsOnly_(false)
+        , refreshPending_(false)
+        , throttleIntervalMs_(16) // 60 FPS target
     {
+        // Setup throttle timer
+        throttleTimer_ = new QTimer(this);
+        throttleTimer_->setSingleShot(true);
+        connect(throttleTimer_, &QTimer::timeout, this, &LogViewModel::performThrottledRefresh);
     }
 
     ~LogViewModel() override = default;
 
     // ILogViewModel interface
     void setLogBuffer(std::shared_ptr<Core::ILogBuffer> logBuffer) override {
-        if (logBuffer_ != logBuffer) {
+        bool bufferChanged = (logBuffer_ != logBuffer);
+        
+        if (bufferChanged) {
             logBuffer_ = logBuffer;
-            refresh();
-            emit logsAdded(); // Notify UI of buffer change
+            
+            // Setup callback for throttled updates when logs are added
+            // Use QMetaObject::invokeMethod to ensure callback runs in UI thread
+            if (logBuffer_) {
+                logBuffer_->setUpdateCallback([this]() {
+                    // Ensure this executes in the LogViewModel's thread (UI thread)
+                    QMetaObject::invokeMethod(this, &LogViewModel::requestLogUpdate, Qt::QueuedConnection);
+                });
+            }
         }
+        
+        // Always schedule refresh when setLogBuffer is called
+        // This ensures UI updates even when reconnecting the same buffer
+        scheduleThrottledRefresh();
     }
 
     std::shared_ptr<Core::ILogBuffer> getLogBuffer() const override {
@@ -51,7 +72,7 @@ public:
     void setFilter(const QString& filter) override {
         if (filter_ != filter) {
             filter_ = filter;
-            refresh();
+            scheduleThrottledRefresh();
             emit filterChanged();
         }
     }
@@ -67,7 +88,7 @@ public:
     void setShowErrorsOnly(bool errorsOnly) override {
         if (showErrorsOnly_ != errorsOnly) {
             showErrorsOnly_ = errorsOnly;
-            refresh();
+            scheduleThrottledRefresh();
         }
     }
 
@@ -76,35 +97,22 @@ public:
     }
 
     void refresh() override {
-        if (!logBuffer_) [[unlikely]] {
-            return;
-        }
+        // Public refresh can be called directly for immediate updates
+        // (e.g., when user explicitly requests refresh)
+        performImmediateRefresh();
+    }
 
-        beginResetModel();
-        
-        // Get all logs from buffer
-        std::vector<Core::LogEntry> allLogs = logBuffer_->getAll();
-        
-        // Apply filters
-        filteredLogs_.clear();
-        filteredLogs_.reserve(allLogs.size());
-        
-        for (const auto& entry : allLogs) {
-            // Filter by errors only
-            if (showErrorsOnly_ && !entry.isError) {
-                continue;
-            }
-            
-            // Filter by text search
-            if (!filter_.isEmpty() && 
-                !entry.text.contains(filter_, Qt::CaseInsensitive)) {
-                continue;
-            }
-            
-            filteredLogs_.push_back(entry);
-        }
-        
-        endResetModel();
+    void requestLogUpdate() override {
+        // Throttled log update for automatic updates when logs are added
+        scheduleThrottledRefresh();
+    }
+
+    void setThrottleInterval(int intervalMs) override {
+        throttleIntervalMs_ = intervalMs;
+    }
+
+    int getThrottleInterval() const override {
+        return throttleIntervalMs_;
     }
 
     void scrollToBottom() override {
@@ -185,6 +193,73 @@ private:
     std::vector<Core::LogEntry> filteredLogs_;
     QString filter_;
     bool showErrorsOnly_;
+    QTimer* throttleTimer_;
+    bool refreshPending_;
+    int throttleIntervalMs_;
+    
+    /**
+     * @brief Schedule a throttled refresh
+     * 
+     * Sets the pending flag and starts the timer. If timer is already running,
+     * this ensures refresh will happen when timer fires.
+     */
+    void scheduleThrottledRefresh() {
+        refreshPending_ = true;
+        
+        if (!throttleTimer_->isActive()) {
+            throttleTimer_->start(throttleIntervalMs_);
+        }
+    }
+    
+    /**
+     * @brief Perform the throttled refresh
+     * 
+     * Called by the timer. Only refreshes if pending flag is set.
+     */
+    void performThrottledRefresh() {
+        if (refreshPending_) {
+            refreshPending_ = false;
+            performImmediateRefresh();
+            emit logsAdded();
+        }
+    }
+    
+    /**
+     * @brief Perform immediate refresh of the model
+     * 
+     * Updates the filtered logs from the buffer and notifies the view.
+     */
+    void performImmediateRefresh() {
+        if (!logBuffer_) [[unlikely]] {
+            return;
+        }
+
+        beginResetModel();
+        
+        // Get all logs from buffer
+        std::vector<Core::LogEntry> allLogs = logBuffer_->getAll();
+        
+        // Apply filters
+        filteredLogs_.clear();
+        filteredLogs_.reserve(allLogs.size());
+        
+        for (const auto& entry : allLogs) {
+            // Filter by errors only
+            if (showErrorsOnly_ && !entry.isError) {
+                continue;
+            }
+            
+            // Filter by text search
+            if (!filter_.isEmpty() && 
+                !entry.text.contains(filter_, Qt::CaseInsensitive)) {
+                continue;
+            }
+            
+            filteredLogs_.push_back(entry);
+        }
+        
+        endResetModel();
+    }
     
     /**
      * @brief Convert styled segments to QVariantList for QML

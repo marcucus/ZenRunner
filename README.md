@@ -60,7 +60,8 @@ Public APIs and shared definitions:
 - 📦 **Smart Detection**: Automatic package.json script discovery
 - 🗂️ **Workspace Management**: Group projects and launch with batch actions (sequential/parallel)
 - 🔄 **Process Control**: Start, stop, and monitor multiple development processes
-- 📊 **Live Logs**: ANSI color support with circular buffering
+- 📊 **Live Logs**: ANSI color support with circular buffering (5000 lines per project)
+- 🛡️ **Log Throttling**: Intelligent UI protection against log floods (99%+ update reduction)
 - 🌐 **System Integration**: 
   - Real-time system tray with color-coded status (Gray/Green/Red/Orange)
   - Native notifications with click handling
@@ -153,6 +154,19 @@ cmake --build . --config Release
 ```
 
 For detailed build instructions and performance testing, see [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md).
+
+## Documentation
+
+### Core Features
+- [Workspace Guide](docs/WORKSPACE_GUIDE.md) - Multi-project workspace management
+- [Circular Buffer Implementation](CIRCULAR_BUFFER_IMPLEMENTATION.md) - Memory-efficient log storage
+- [Log Throttling System](LOG_THROTTLING_IMPLEMENTATION.md) - UI protection against log floods
+- [Native Integration](docs/NATIVE_INTEGRATION.md) - OS-specific features and APIs
+- [Performance Guide](docs/PERFORMANCE.md) - 60 FPS optimization details
+
+### Technical Specifications
+- [specifications.md](specifications.md) - Complete technical documentation
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture overview
 
 ## Development Status
 

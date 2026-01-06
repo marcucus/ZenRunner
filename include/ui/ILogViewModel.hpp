@@ -67,6 +67,26 @@ public:
     virtual void refresh() = 0;
 
     /**
+     * @brief Request a log update with throttling
+     * 
+     * This method should be called when new logs are added to the buffer.
+     * It throttles updates to prevent overwhelming the UI during log floods.
+     */
+    virtual void requestLogUpdate() = 0;
+
+    /**
+     * @brief Set the throttle interval for log updates
+     * @param intervalMs Minimum time between UI updates in milliseconds (default: 16ms for ~60 FPS)
+     */
+    virtual void setThrottleInterval(int intervalMs) = 0;
+
+    /**
+     * @brief Get the current throttle interval
+     * @return Throttle interval in milliseconds
+     */
+    virtual int getThrottleInterval() const = 0;
+
+    /**
      * @brief Scroll to the bottom (most recent log)
      */
     Q_INVOKABLE virtual void scrollToBottom() = 0;
