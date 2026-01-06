@@ -48,7 +48,9 @@ ZenRunner
 %LOCALAPPDATA%\Programs\ZenRunner\ZenRunner.exe  # Windows
 ```
 
-For detailed installation instructions, troubleshooting, and dependency information, see [INSTALL.md](INSTALL.md).
+For detailed installation instructions, troubleshooting, and dependency information, see:
+- **[QUICKSTART.md](QUICKSTART.md)** - Fast-track guide to get running quickly
+- **[INSTALL.md](INSTALL.md)** - Complete installation and troubleshooting guide
 
 ## Project Structure
 
