@@ -8,6 +8,10 @@ GlassCard {
     
     property var statisticsViewModel: null
     
+    // Constants for display
+    readonly property string labelText: "Avg"
+    readonly property real maxMemoryScaleMB: 200.0  // Scale memory bars to 200MB max
+    
     glassOpacity: 0.1
     
     ColumnLayout {
@@ -227,7 +231,7 @@ GlassCard {
                             spacing: 6
                             
                             Text {
-                                text: "Avg"
+                                text: statisticsPanel.labelText
                                 font.pixelSize: 9
                                 color: "#666666"
                                 Layout.preferredWidth: 25
@@ -262,7 +266,7 @@ GlassCard {
                             spacing: 6
                             
                             Text {
-                                text: "Avg"
+                                text: statisticsPanel.labelText
                                 font.pixelSize: 9
                                 color: "#666666"
                                 Layout.preferredWidth: 25
@@ -276,7 +280,7 @@ GlassCard {
                                 color: Qt.rgba(0.3, 0.3, 0.3, 0.3)
                                 
                                 Rectangle {
-                                    width: Math.min(parent.width * (avgMemory / 200), parent.width)
+                                    width: Math.min(parent.width * (avgMemory / statisticsPanel.maxMemoryScaleMB), parent.width)
                                     height: parent.height
                                     radius: parent.radius
                                     color: "#7c4dff"
