@@ -6,6 +6,52 @@ A high-performance native process manager for developers, built with C++20 and Q
 
 ZenRunner is a lightweight alternative to Electron-based development tools, designed to manage development processes with minimal resource consumption (< 30MB RAM) while providing a modern glassmorphism UI and deep OS integration.
 
+## Quick Start
+
+### Installation
+
+#### Linux / macOS
+```bash
+git clone https://github.com/marcucus/ZenRunner.git
+cd ZenRunner
+chmod +x install.sh
+./install.sh
+```
+
+#### Windows (PowerShell)
+```powershell
+git clone https://github.com/marcucus/ZenRunner.git
+cd ZenRunner
+.\install.ps1
+```
+
+### Launching ZenRunner
+
+After installation, launch ZenRunner using one of these methods:
+
+#### Using Launcher Script (Recommended)
+```bash
+# Linux / macOS
+./zenrunner.sh
+
+# Windows
+.\zenrunner.bat
+```
+
+#### Direct Execution
+```bash
+# If installed system-wide
+ZenRunner
+
+# If installed to user directory
+~/.local/bin/ZenRunner  # Linux / macOS
+%LOCALAPPDATA%\Programs\ZenRunner\ZenRunner.exe  # Windows
+```
+
+For detailed installation instructions, troubleshooting, and dependency information, see:
+- **[QUICKSTART.md](QUICKSTART.md)** - Fast-track guide to get running quickly
+- **[INSTALL.md](INSTALL.md)** - Complete installation and troubleshooting guide
+
 ## Project Structure
 
 The project follows a modular architecture with clear separation of concerns:
@@ -142,7 +188,9 @@ ZenRunner integrates deeply with native operating system APIs for optimal perfor
 
 See [docs/NATIVE_INTEGRATION.md](docs/NATIVE_INTEGRATION.md) for detailed integration guide and API reference.
 
-## Building
+## Building from Source
+
+### Quick Build (Manual)
 
 ```bash
 # Prerequisites: Qt 6.2+, CMake 3.21+, C++20 compiler
@@ -153,7 +201,27 @@ cmake --build . --config Release
 ./bin/ZenRunner
 ```
 
-For detailed build instructions and performance testing, see [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md).
+### Automated Build & Install (Recommended)
+
+Use the provided installation scripts for an automated build and installation process:
+
+```bash
+# Linux / macOS
+./install.sh
+
+# Windows (PowerShell)
+.\install.ps1
+```
+
+The installation scripts will:
+- Check and guide you through installing dependencies
+- Build the application with optimizations
+- Install to your system or user directory
+- Create launcher scripts for easy access
+
+For detailed build instructions, dependency installation, and troubleshooting, see:
+- [INSTALL.md](INSTALL.md) - Complete installation guide
+- [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md) - Build and performance testing
 
 ## Documentation
 
