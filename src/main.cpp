@@ -205,7 +205,8 @@ int main(int argc, char *argv[]) {
             processManager.stopAll(5000);  // 5 second timeout for graceful termination
             
             // Allow event loop to process termination signals
-            // The ProcessManager destructor will force kill any remaining processes
+            // ProcessManager destructor will force-kill any remaining processes
+            // The 100ms timeout is just for initial signal processing
             QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
         }
         
