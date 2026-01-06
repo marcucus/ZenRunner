@@ -83,6 +83,10 @@ set(PLATFORM_SOURCES
     include/platform/NativeEffects.h
     src/platform/WindowsNativeEffects.cpp
     src/platform/GenericNativeEffects.cpp
+    src/platform/SystemTray.cpp
+    include/platform/SystemTray.h
+    src/platform/NativePlatformManager.cpp
+    include/platform/NativePlatformManager.h
 )
 
 # Storage Layer sources
