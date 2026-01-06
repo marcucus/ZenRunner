@@ -85,3 +85,5 @@ test_circular_buffer
 test_signal_latency
 test_ansi_parser
 test_logbuffer_ansi
+test_project_repository
+test_application_state
