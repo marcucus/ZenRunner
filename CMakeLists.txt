@@ -27,6 +27,7 @@ find_package(Qt6 REQUIRED COMPONENTS
 
 # Include directories - Public API interfaces
 include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/src)
 
 # Compiler warnings
 if(MSVC)

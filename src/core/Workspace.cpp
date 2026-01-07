@@ -1,4 +1,5 @@
 #include "Workspace.h"
+#include "core/IProcessManager.hpp"
 #include <QUuid>
 #include <algorithm>
 
@@ -221,11 +222,11 @@ public:
             
             // Try to stop processes that might exist for this project
             const auto scripts = project->getScripts();
-            for (const auto& [scriptName, script] : scripts) {
+            for (const auto& script : scripts) {
                 const QString processId = QString("%1_%2_%3")
                     .arg(id_)
                     .arg(project->getId())
-                    .arg(scriptName);
+                    .arg(script.name);
                 
                 // Check if process exists and stop it
                 if (processManager_->isProcessRunning(processId)) [[unlikely]] {
@@ -254,11 +255,11 @@ public:
 
             // Check all possible process IDs for this project
             const auto scripts = project->getScripts();
-            for (const auto& [scriptName, script] : scripts) {
+            for (const auto& script : scripts) {
                 const QString processId = QString("%1_%2_%3")
                     .arg(id_)
                     .arg(project->getId())
-                    .arg(scriptName);
+                    .arg(script.name);
                 
                 if (processManager_->isProcessRunning(processId)) [[unlikely]] {
                     return true;

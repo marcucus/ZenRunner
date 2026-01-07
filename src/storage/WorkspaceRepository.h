@@ -26,7 +26,7 @@ public:
     explicit WorkspaceRepository(const QString& storageDir = QString());
 
     bool saveWorkspace(const Core::IWorkspace& workspace) override;
-    std::shared_ptr<Core::IWorkspace> loadWorkspace(const QString& workspaceId) override;
+    std::shared_ptr<Core::IWorkspace> loadWorkspace(const QString& workspaceId) const override;
     bool deleteWorkspace(const QString& workspaceId) override;
     std::vector<QString> getAllWorkspaceIds() const override;
     std::vector<std::shared_ptr<Core::IWorkspace>> getAllWorkspaces() override;

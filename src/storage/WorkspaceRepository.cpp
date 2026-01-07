@@ -43,7 +43,7 @@ bool WorkspaceRepository::saveWorkspace(const Core::IWorkspace& workspace) {
     return true;
 }
 
-std::shared_ptr<Core::IWorkspace> WorkspaceRepository::loadWorkspace(const QString& workspaceId) {
+std::shared_ptr<Core::IWorkspace> WorkspaceRepository::loadWorkspace(const QString& workspaceId) const {
     const QString filePath = getWorkspaceFilePath(workspaceId);
     QFile file(filePath);
     
