@@ -335,56 +335,50 @@ int main(int argc, char *argv[]) {
     qDebug() << "Testing: Memory-bound, O(1) insertion, 5000 capacity";
     qDebug() << "=================================================\n";
     
-    try {
-        testBasicInsertion();
-        testOverflowBehavior();
-        testInsertionPerformance();
-        testContiguousMemory();
-        testThreadSafety();
-        testLogBuffer();
-        testMoveSemantics();
-        testRandomAccess();
-        
-        // Print summary
-        qDebug() << "\n=================================================";
-        qDebug() << "Test Summary";
-        qDebug() << "=================================================";
-        
-        int passed = 0;
-        int failed = 0;
-        
-        for (const auto& result : testResults) {
-            if (result.passed) {
-                ++passed;
-            } else {
-                ++failed;
-            }
-        }
-        
-        qDebug() << "Total tests:" << (passed + failed);
-        qDebug() << "Passed:" << passed;
-        qDebug() << "Failed:" << failed;
-        
-        if (failed == 0) {
-            qDebug() << "\n✓ All tests passed!";
-            qDebug() << "\nCircular Buffer Implementation Summary:";
-            qDebug() << "  ✓ Supports up to 5000 log lines per project";
-            qDebug() << "  ✓ O(1) insertion cost guaranteed";
-            qDebug() << "  ✓ Buffer overflows overwrite oldest entries";
-            qDebug() << "  ✓ Contiguous memory structure (std::array)";
-            qDebug() << "  ✓ Thread-safe with mutex protection";
-            qDebug() << "  ✓ Memory-efficient for system stability";
+    testBasicInsertion();
+    testOverflowBehavior();
+    testInsertionPerformance();
+    testContiguousMemory();
+    testThreadSafety();
+    testLogBuffer();
+    testMoveSemantics();
+    testRandomAccess();
+    
+    // Print summary
+    qDebug() << "\n=================================================";
+    qDebug() << "Test Summary";
+    qDebug() << "=================================================";
+    
+    int passed = 0;
+    int failed = 0;
+    
+    for (const auto& result : testResults) {
+        if (result.passed) {
+            ++passed;
         } else {
-            qDebug() << "\n✗ Some tests failed!";
-            return 1;
+            ++failed;
         }
-        
-        qDebug() << "=================================================";
-        
-        return 0;
-        
-    } catch (const std::exception& e) {
-        qCritical() << "Test failed with exception:" << e.what();
+    }
+    
+    qDebug() << "Total tests:" << (passed + failed);
+    qDebug() << "Passed:" << passed;
+    qDebug() << "Failed:" << failed;
+    
+    if (failed == 0) {
+        qDebug() << "\n✓ All tests passed!";
+        qDebug() << "\nCircular Buffer Implementation Summary:";
+        qDebug() << "  ✓ Supports up to 5000 log lines per project";
+        qDebug() << "  ✓ O(1) insertion cost guaranteed";
+        qDebug() << "  ✓ Buffer overflows overwrite oldest entries";
+        qDebug() << "  ✓ Contiguous memory structure (std::array)";
+        qDebug() << "  ✓ Thread-safe with mutex protection";
+        qDebug() << "  ✓ Memory-efficient for system stability";
+    } else {
+        qDebug() << "\n✗ Some tests failed!";
         return 1;
     }
+    
+    qDebug() << "=================================================";
+    
+    return 0;
 }
