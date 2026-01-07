@@ -113,8 +113,6 @@ int main(int argc, char *argv[]) {
     
     // Expose managers to QML
     engine.rootContext()->setContextProperty("projectManager", &projectManager);
-    // Note: stateManager doesn't inherit from QObject, cannot be exposed to QML directly
-    // engine.rootContext()->setContextProperty("stateManager", stateManager.get());
     engine.rootContext()->setContextProperty("processManager", &processManager);
     engine.rootContext()->setContextProperty("platformManager", &platformManager);
     

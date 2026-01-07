@@ -186,9 +186,6 @@ bool ProjectRepository::updateProjectMetadata(
         return false;
     }
     
-    // Note: Project name is read-only from package.json, cannot be set manually
-    // project->setName(name);  // This method doesn't exist in Project class
-    
     // Update pinned scripts - get current pinned scripts
     const auto currentPinned = project->getPinnedScripts();
     
