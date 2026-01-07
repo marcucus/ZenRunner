@@ -1,0 +1,250 @@
+; ZenRunner NSIS Installer Script
+; This script creates a Windows installer for ZenRunner
+; Requires NSIS 3.x or later
+
+;--------------------------------
+; Includes
+
+!include "MUI2.nsh"
+!include "FileFunc.nsh"
+!include "x64.nsh"
+!include "LogicLib.nsh"
+!include "StrFunc.nsh"
+
+; Constants for environment notification
+!define HWND_BROADCAST 0xffff
+!define WM_WININICHANGE 0x001A
+
+; Initialize StrFunc functions
+${StrStr}
+${StrRep}
+
+;--------------------------------
+; General Configuration
+
+; Application name and version
+!define APPNAME "ZenRunner"
+!define COMPANYNAME "ZenRunner Project"
+!define DESCRIPTION "A high-performance native process manager for developers"
+!define VERSIONMAJOR 1
+!define VERSIONMINOR 0
+!define VERSIONBUILD 0
+
+; Installer name
+Name "${APPNAME}"
+OutFile "..\..\build\ZenRunner-Setup-${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD}.exe"
+
+; Default installation directory (user's local AppData)
+InstallDir "$LOCALAPPDATA\Programs\${APPNAME}"
+
+; Get installation directory from registry if available
+InstallDirRegKey HKCU "Software\${APPNAME}" "InstallDir"
+
+; Request application privileges (normal user - not admin)
+RequestExecutionLevel user
+
+; Branding
+BrandingText "${APPNAME} v${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD}"
+
+;--------------------------------
+; Interface Settings
+
+!define MUI_ABORTWARNING
+!define MUI_ICON "${NSISDIR}\Contrib\Graphics\Icons\modern-install.ico"
+!define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
+
+; Welcome page
+!define MUI_WELCOMEPAGE_TITLE "Welcome to ${APPNAME} Setup"
+!define MUI_WELCOMEPAGE_TEXT "This wizard will guide you through the installation of ${APPNAME}.$\r$\n$\r$\n${DESCRIPTION}$\r$\n$\r$\nClick Next to continue."
+
+; Finish page
+!define MUI_FINISHPAGE_RUN "$INSTDIR\ZenRunner.exe"
+!define MUI_FINISHPAGE_RUN_TEXT "Launch ${APPNAME}"
+
+;--------------------------------
+; Pages
+
+!insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_LICENSE "..\..\LICENSE.txt"
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
+!insertmacro MUI_PAGE_FINISH
+
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+
+;--------------------------------
+; Languages
+
+!insertmacro MUI_LANGUAGE "English"
+!insertmacro MUI_LANGUAGE "French"
+
+;--------------------------------
+; Installer Sections
+
+Section "Core Application" SecCore
+    SectionIn RO ; Required section
+    
+    SetOutPath "$INSTDIR"
+    
+    ; Application files
+    File "..\..\build\bin\Release\ZenRunner.exe"
+    
+    ; Qt runtime libraries
+    File /nonfatal "..\..\build\bin\Release\Qt6Core.dll"
+    File /nonfatal "..\..\build\bin\Release\Qt6Gui.dll"
+    File /nonfatal "..\..\build\bin\Release\Qt6Quick.dll"
+    File /nonfatal "..\..\build\bin\Release\Qt6Qml.dll"
+    File /nonfatal "..\..\build\bin\Release\Qt6Widgets.dll"
+    File /nonfatal "..\..\build\bin\Release\Qt6Network.dll"
+    
+    ; Qt plugins
+    SetOutPath "$INSTDIR\platforms"
+    File /nonfatal /r "..\..\build\bin\Release\platforms\*.*"
+    
+    SetOutPath "$INSTDIR\imageformats"
+    File /nonfatal /r "..\..\build\bin\Release\imageformats\*.*"
+    
+    SetOutPath "$INSTDIR\styles"
+    File /nonfatal /r "..\..\build\bin\Release\styles\*.*"
+    
+    SetOutPath "$INSTDIR\qmltooling"
+    File /nonfatal /r "..\..\build\bin\Release\qmltooling\*.*"
+    
+    ; Documentation
+    SetOutPath "$INSTDIR\docs"
+    File /nonfatal /r "..\..\docs\*.md"
+    File /nonfatal "..\..\README.md"
+    File /nonfatal "..\..\INSTALL.md"
+    
+    ; Create uninstaller
+    WriteUninstaller "$INSTDIR\Uninstall.exe"
+    
+    ; Write registry keys for Add/Remove Programs (using HKCU for user-level install)
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayName" "${APPNAME}"
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "QuietUninstallString" "$\"$INSTDIR\Uninstall.exe$\" /S"
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "InstallLocation" "$INSTDIR"
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "Publisher" "${COMPANYNAME}"
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayVersion" "${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD}"
+    WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "VersionMajor" ${VERSIONMAJOR}
+    WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "VersionMinor" ${VERSIONMINOR}
+    WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "NoModify" 1
+    WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "NoRepair" 1
+    
+    ; Store installation directory
+    WriteRegStr HKCU "Software\${APPNAME}" "InstallDir" "$INSTDIR"
+    
+    ; Get installed size
+    ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+    IntFmt $0 "0x%08X" $0
+    WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "EstimatedSize" "$0"
+    
+SectionEnd
+
+Section "Start Menu Shortcuts" SecStartMenu
+    CreateDirectory "$SMPROGRAMS\${APPNAME}"
+    CreateShortcut "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk" "$INSTDIR\ZenRunner.exe"
+    CreateShortcut "$SMPROGRAMS\${APPNAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
+SectionEnd
+
+Section "Desktop Shortcut" SecDesktop
+    CreateShortcut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\ZenRunner.exe"
+SectionEnd
+
+Section /o "Add to PATH" SecPath
+    ; Add installation directory to user PATH using standard NSIS functions
+    ; Read current PATH
+    ReadRegStr $0 HKCU "Environment" "Path"
+    
+    ; Check if already in PATH
+    ${StrStr} $1 $0 "$INSTDIR"
+    StrCmp $1 "" 0 +3
+        ; Not in PATH, add it
+        StrCpy $0 "$0;$INSTDIR"
+        WriteRegExpandStr HKCU "Environment" "Path" "$0"
+    
+    ; Notify system of environment change
+    SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+    DetailPrint "Added to PATH: $INSTDIR"
+SectionEnd
+
+;--------------------------------
+; Section Descriptions
+
+!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
+    !insertmacro MUI_DESCRIPTION_TEXT ${SecCore} "Core application files (required)"
+    !insertmacro MUI_DESCRIPTION_TEXT ${SecStartMenu} "Create shortcuts in Start Menu"
+    !insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop} "Create shortcut on Desktop"
+    !insertmacro MUI_DESCRIPTION_TEXT ${SecPath} "Add ZenRunner to PATH environment variable"
+!insertmacro MUI_FUNCTION_DESCRIPTION_END
+
+;--------------------------------
+; Uninstaller Section
+
+Section "Uninstall"
+    ; Remove files
+    Delete "$INSTDIR\ZenRunner.exe"
+    Delete "$INSTDIR\*.dll"
+    Delete "$INSTDIR\Uninstall.exe"
+    
+    ; Remove directories
+    RMDir /r "$INSTDIR\platforms"
+    RMDir /r "$INSTDIR\imageformats"
+    RMDir /r "$INSTDIR\styles"
+    RMDir /r "$INSTDIR\qmltooling"
+    RMDir /r "$INSTDIR\docs"
+    
+    ; Remove installation directory if empty
+    RMDir "$INSTDIR"
+    
+    ; Remove shortcuts
+    Delete "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk"
+    Delete "$SMPROGRAMS\${APPNAME}\Uninstall.lnk"
+    RMDir "$SMPROGRAMS\${APPNAME}"
+    Delete "$DESKTOP\${APPNAME}.lnk"
+    
+    ; Remove registry keys (from HKCU for user-level install)
+    DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
+    DeleteRegKey HKCU "Software\${APPNAME}"
+    
+    ; Remove from PATH if present
+    ReadRegStr $0 HKCU "Environment" "Path"
+    ${StrStr} $1 $0 "$INSTDIR"
+    StrCmp $1 "" PathNotFound
+        ; Remove from PATH
+        ${StrRep} $0 $0 ";$INSTDIR" ""
+        ${StrRep} $0 $0 "$INSTDIR;" ""
+        ${StrRep} $0 $0 "$INSTDIR" ""
+        WriteRegExpandStr HKCU "Environment" "Path" "$0"
+        ; Notify system of environment change
+        SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+    PathNotFound:
+    
+SectionEnd
+
+;--------------------------------
+; Functions
+
+Function .onInit
+    ; Check if already installed (check HKCU for user-level install)
+    ReadRegStr $R0 HKCU "Software\${APPNAME}" "InstallDir"
+    StrCmp $R0 "" done
+    
+    MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
+    "${APPNAME} is already installed. $\n$\nClick 'OK' to remove the previous version or 'Cancel' to cancel this installation." \
+    IDOK uninst
+    Abort
+    
+uninst:
+    ; Run the uninstaller
+    ClearErrors
+    ExecWait '$R0\Uninstall.exe _?=$R0'
+    
+done:
+FunctionEnd
+
+Function un.onInit
+    MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 "Are you sure you want to uninstall ${APPNAME}?" IDYES +2
+    Abort
+FunctionEnd

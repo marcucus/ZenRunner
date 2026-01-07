@@ -222,6 +222,48 @@ The installation scripts will:
 For detailed build instructions, dependency installation, and troubleshooting, see:
 - [INSTALL.md](INSTALL.md) - Complete installation guide
 - [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md) - Build and performance testing
+- [docs/PACKAGING.md](docs/PACKAGING.md) - Creating distributable packages (.exe, .dmg)
+
+## Distribution Packages
+
+ZenRunner can be packaged for easy distribution on all platforms:
+
+### Windows (.exe)
+Professional NSIS installer with:
+- Installation wizard (English/French)
+- Start Menu and Desktop shortcuts
+- Add/Remove Programs integration
+- Optional PATH addition
+
+```powershell
+cd packaging\windows
+.\build-installer.ps1
+```
+
+### macOS (.dmg)
+Disk image with .app bundle:
+- Drag-and-drop installation
+- Native macOS integration
+- Code signing support
+- Notarization ready
+
+```bash
+cd packaging/macos
+./build-dmg.sh
+```
+
+### Linux
+Multiple package formats:
+- DEB (Ubuntu/Debian)
+- RPM (Fedora/RHEL)
+- TGZ (portable)
+
+```bash
+cd build
+cpack -G DEB  # or RPM, TGZ
+```
+
+For complete packaging instructions and security considerations, see [docs/PACKAGING.md](docs/PACKAGING.md).
 
 ## Documentation
 
@@ -231,6 +273,10 @@ For detailed build instructions, dependency installation, and troubleshooting, s
 - [Log Throttling System](LOG_THROTTLING_IMPLEMENTATION.md) - UI protection against log floods
 - [Native Integration](docs/NATIVE_INTEGRATION.md) - OS-specific features and APIs
 - [Performance Guide](docs/PERFORMANCE.md) - 60 FPS optimization details
+
+### Packaging and Distribution
+- [Packaging Guide](docs/PACKAGING.md) - Creating distributable packages
+- [Security Guidelines](docs/SECURITY.md) - Application security and safety measures
 
 ### Technical Specifications
 - [specifications.md](specifications.md) - Complete technical documentation
@@ -244,4 +290,4 @@ See [specifications.md](specifications.md) for detailed technical documentation.
 
 ## License
 
-TBD
+MIT License - See [LICENSE.txt](LICENSE.txt) for details.
