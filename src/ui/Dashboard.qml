@@ -77,11 +77,13 @@ Item {
         property var selectedProjectIndices: []
         property var selectedProjectIds: []  // Store project IDs for adding to workspace
         property string pendingWorkspaceId: ""  // Store workspace ID after creation
+        property bool isCreating: false  // Flag to prevent multiple simultaneous creations
         
         onOpened: {
             selectedProjectIndices = []
             selectedProjectIds = []
             pendingWorkspaceId = ""
+            isCreating = false
             workspaceNameField.text = ""
         }
         
@@ -91,8 +93,9 @@ Item {
             
             function onWorkspaceCreated(workspaceId) {
                 // Check if this is our pending workspace creation
-                // Only proceed if we have projects to add and haven't processed this workspace yet
-                if (workspaceCreationDialog.selectedProjectIds.length > 0 && 
+                // Only proceed if we're in creation mode, have projects to add, and haven't processed yet
+                if (workspaceCreationDialog.isCreating && 
+                    workspaceCreationDialog.selectedProjectIds.length > 0 && 
                     workspaceCreationDialog.pendingWorkspaceId === "") {
                     workspaceCreationDialog.pendingWorkspaceId = workspaceId
                     
@@ -104,7 +107,8 @@ Item {
                         workspaceViewModel.addProjectToWorkspace(workspaceId, projectId)
                     }
                     
-                    // Clear and close
+                    // Clear state and close
+                    workspaceCreationDialog.isCreating = false
                     workspaceNameField.text = ""
                     workspaceCreationDialog.selectedProjectIndices = []
                     workspaceCreationDialog.selectedProjectIds = []
@@ -234,14 +238,19 @@ Item {
                 
                 Button {
                     text: "Create"
-                    enabled: workspaceNameField.text.trim() !== "" && workspaceCreationDialog.selectedProjectIndices.length > 0
+                    enabled: !workspaceCreationDialog.isCreating && 
+                             workspaceNameField.text.trim() !== "" && 
+                             workspaceCreationDialog.selectedProjectIds.length > 0
                     onClicked: {
-                        console.log("Creating workspace:", workspaceNameField.text, "with", workspaceCreationDialog.selectedProjectIndices.length, "projects")
+                        console.log("Creating workspace:", workspaceNameField.text, "with", workspaceCreationDialog.selectedProjectIds.length, "projects")
+                        
+                        // Set flag to indicate we're creating a workspace
+                        workspaceCreationDialog.isCreating = true
                         
                         // Create the workspace - projects will be added via the workspaceCreated signal handler
                         workspaceViewModel.createWorkspace(
                             workspaceNameField.text, 
-                            workspaceCreationDialog.selectedProjectIndices.length + " projects"
+                            workspaceCreationDialog.selectedProjectIds.length + " projects"
                         )
                     }
                 }

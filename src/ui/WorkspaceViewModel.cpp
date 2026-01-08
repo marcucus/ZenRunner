@@ -225,7 +225,7 @@ bool WorkspaceViewModel::addProjectToWorkspace(const QString& workspaceId, const
     auto project = projectRepository_->loadProject(projectId);
     if (!project) [[unlikely]] {
         qWarning() << "WorkspaceViewModel: Failed to load project" << projectId;
-        emit errorOccurred("Failed to load project");
+        emit errorOccurred(QString("Failed to load project: %1").arg(projectId));
         return false;
     }
 
