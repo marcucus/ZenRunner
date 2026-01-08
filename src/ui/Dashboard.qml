@@ -249,6 +249,9 @@ Item {
                         text: "+ Import Project"
                         accentColor: "#4a90e2"
                         width: 140
+                        onClicked: {
+                            folderDialog.open()
+                        }
                     }
                     
                     GlassButton {
@@ -535,8 +538,8 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     
-                    // This property will be set from C++ (main.cpp)
-                    // workspaceViewModel: workspaceViewModelInstance
+                    // Connect to the workspaceViewModel from context property
+                    workspaceViewModel: workspaceViewModel
                 }
                 
                 // Statistics panel
