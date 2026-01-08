@@ -15,8 +15,8 @@ namespace ZenRunner::Core {
 class Workspace : public IWorkspace {
 public:
     explicit Workspace(const QString& name, const QString& id = QString())
-        : name_(name)
-        , id_(id.isEmpty() ? QUuid::createUuid().toString(QUuid::WithoutBraces) : id)
+        : id_(id.isEmpty() ? QUuid::createUuid().toString(QUuid::WithoutBraces) : id)
+        , name_(name)
         , processManager_(nullptr)
     {
         // Pre-allocate space for typical workspace size (5-10 projects)

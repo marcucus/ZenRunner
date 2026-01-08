@@ -250,7 +250,7 @@ void AsyncProcess::onStarted() {
                LogLevel::Info, false);
 }
 
-void AsyncProcess::onStateChanged(QProcess::ProcessState newState) {
+void AsyncProcess::onStateChanged(QProcess::ProcessState /*newState*/) {
     // QProcess state changes are already handled by our signals
     // This is here for additional monitoring if needed
 }
@@ -396,12 +396,12 @@ void ProcessManager::startAll(bool sequential) {
         // Note: For true sequential startup, we'd need to wait for each
         // process to start before starting the next. This is a simplified version.
         for (auto& [id, process] : processes_) {
-            process->start();
+            (void)process->start();  // Explicitly ignore return value
         }
     } else {
         // Start all processes simultaneously
         for (auto& [id, process] : processes_) {
-            process->start();
+            (void)process->start();  // Explicitly ignore return value
         }
     }
 }

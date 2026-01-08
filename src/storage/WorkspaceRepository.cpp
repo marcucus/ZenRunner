@@ -145,7 +145,7 @@ bool WorkspaceRepository::updateWorkspaceMetadata(
 
 bool WorkspaceRepository::addProjectToWorkspace(
     const QString& workspaceId,
-    const QString& projectId)
+    const QString& /*projectId*/)
 {
     auto workspace = loadWorkspace(workspaceId);
     if (!workspace) [[unlikely]] {
