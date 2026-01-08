@@ -13,6 +13,7 @@
         <!-- Reusable components -->
         <file>components/GlassCard.qml</file>
         <file>components/GlassButton.qml</file>
+        <file>components/Toast.qml</file>
         <file>components/qmldir</file>
     </qresource>
 </RCC>
