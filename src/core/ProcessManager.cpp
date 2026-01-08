@@ -1,5 +1,6 @@
 #include "core/ProcessManager.h"
 #include <QDateTime>
+#include <QDir>
 #include <algorithm>
 
 #ifdef Q_OS_UNIX
@@ -402,17 +403,57 @@ void ProcessManager::stopProcess(const QString& id, int timeoutMs) {
     }
 }
 
-bool ProcessManager::runScript(const QString& id, const QString& command, const QString& workingDir) {
+bool ProcessManager::runScript(const QString& id, const QString& scriptName, const QString& workingDir) {
     // Remove existing process with same ID if it exists
     if (getProcess(id)) {
         removeProcess(id);
     }
     
-    // Create process config
+    // Detect package manager from lock files
+    QString packageManager = "npm"; // default
+    QDir projectDir(workingDir);
+    if (projectDir.exists("pnpm-lock.yaml")) {
+        packageManager = "pnpm";
+    } else if (projectDir.exists("yarn.lock")) {
+        packageManager = "yarn";
+    }
+    
+    qDebug() << "Running script:" << scriptName << "in" << workingDir << "with" << packageManager;
+    
+    // Build the command to run the npm script
+    QString command;
+    QStringList args;
+    
+    if (packageManager == "yarn") {
+        command = "yarn";
+        args = QStringList{scriptName};
+    } else if (packageManager == "pnpm") {
+        command = "pnpm";
+        args = QStringList{"run", scriptName};
+    } else {  // npm
+        command = "npm";
+        args = QStringList{"run", scriptName};
+    }
+    
+    // Create process config with proper environment
     ProcessConfig config;
     config.command = command;
+    config.arguments = args;
     config.workingDirectory = workingDir;
     config.captureOutput = true;
+    
+    // Set up environment with PATH
+    // This ensures npm/yarn/pnpm can find node executables
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    
+    // Add local node_modules/.bin to PATH
+    QString binPath = projectDir.absoluteFilePath("node_modules/.bin");
+    QString currentPath = env.value("PATH");
+    env.insert("PATH", binPath + ":" + currentPath);
+    
+    config.environment = env;
+    
+    qDebug() << "Executing:" << command << args.join(" ") << "in" << workingDir;
     
     // Create the process
     auto result = createProcess(id, config);

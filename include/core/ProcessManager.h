@@ -206,7 +206,7 @@ public:
     /**
      * @brief Stop a process by ID
      */
-    void stopProcess(const QString& id, int timeoutMs = 5000);
+    Q_INVOKABLE void stopProcess(const QString& id, int timeoutMs = 5000);
 
     /**
      * @brief Start all registered processes

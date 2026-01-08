@@ -4,6 +4,7 @@
 #include <QStringList>
 #include <QVariant>
 #include <QProcessEnvironment>
+#include <QObject>
 #include <concepts>
 #include <optional>
 #include <memory>
@@ -23,14 +24,14 @@ concept CallableWith = std::is_invocable_r_v<R, T, Args...>;
 
 // Process states
 enum class ProcessState {
-    NotStarted,
-    Starting,
-    Running,
-    Paused,
-    Stopping,
-    Stopped,
-    Crashed,
-    Finished
+    NotStarted = 0,
+    Starting = 1,
+    Running = 2,
+    Paused = 3,
+    Stopping = 4,
+    Stopped = 5,
+    Crashed = 6,
+    Finished = 7
 };
 
 // Process priority levels

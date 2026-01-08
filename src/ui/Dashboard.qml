@@ -8,6 +8,50 @@ import "./components"
 Item {
     id: dashboard
     
+    // Track active processes
+    property var activeProcesses: ({})
+    
+    // ProcessState enum values
+    readonly property int processStateNotStarted: 0
+    readonly property int processStateStarting: 1
+    readonly property int processStateRunning: 2
+    readonly property int processStatePaused: 3
+    readonly property int processStateStopping: 4
+    readonly property int processStateStopped: 5
+    readonly property int processStateCrashed: 6
+    readonly property int processStateFinished: 7
+    
+    // Listen to processManager signals
+    Connections {
+        target: processManager
+        
+        function onProcessStateChanged(id, newState) {
+            console.log("Process state changed:", id, newState)
+            
+            // Remove from active processes if stopped, crashed, or finished
+            if (newState === processStateStopped || 
+                newState === processStateCrashed || 
+                newState === processStateFinished) {
+                if (activeProcesses[id] !== undefined) {
+                    delete activeProcesses[id]
+                    dashboard.activeProcessesChanged()
+                }
+            }
+        }
+        
+        function onProcessFinished(id, exitCode) {
+            console.log("Process finished:", id, "Exit code:", exitCode)
+            if (activeProcesses[id] !== undefined) {
+                delete activeProcesses[id]
+                dashboard.activeProcessesChanged()
+            }
+        }
+        
+        function onProcessError(id, error) {
+            console.log("Process error:", id, error)
+        }
+    }
+    
     // Listen to projectManager signals
     Connections {
         target: projectManager
@@ -378,33 +422,102 @@ Item {
                                     Repeater {
                                         model: scripts
                                         
-                                        GlassButton {
+                                        Rectangle {
                                             required property var modelData
                                             
-                                            text: modelData && modelData.name ? modelData.name : "Unknown"
-                                            implicitHeight: 32
-                                            width: Math.max(80, implicitWidth)
-                                            accentColor: {
-                                                if (!modelData || !modelData.name) return "#4a90e2"
-                                                const scriptName = modelData.name.toLowerCase()
-                                                if (scriptName === "start" || scriptName === "dev") return "#4ade80"
-                                                if (scriptName === "test") return "#fbbf24"
-                                                if (scriptName === "build") return "#60a5fa"
-                                                if (scriptName === "lint") return "#a78bfa"
-                                                return "#4a90e2"
-                                            }
+                                            width: Math.max(100, scriptButton.implicitWidth + 50)
+                                            height: 32
+                                            radius: 8
+                                            color: "transparent"
                                             
-                                            onClicked: {
-                                                if (modelData && modelData.name && modelData.command) {
-                                                    console.log("Running script:", modelData.name, "in project:", name)
-                                                    console.log("Path:", path, "Command:", modelData.command)
+                                            property string processId: name + "_" + (modelData && modelData.name ? modelData.name : "unknown")
+                                            property bool isRunning: activeProcesses[processId] !== undefined
+                                            
+                                            Row {
+                                                anchors.fill: parent
+                                                spacing: 4
+                                                
+                                                // Status indicator
+                                                Rectangle {
+                                                    width: 8
+                                                    height: 8
+                                                    radius: 4
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    visible: parent.parent.isRunning
+                                                    color: "#4ade80"
                                                     
-                                                    var processId = name + "_" + modelData.name
-                                                    var success = processManager.runScript(processId, modelData.command, path)
-                                                    if (success) {
-                                                        console.log("Process started successfully:", processId)
-                                                    } else {
-                                                        console.log("Failed to start process:", processId)
+                                                    SequentialAnimation on opacity {
+                                                        running: parent.visible
+                                                        loops: Animation.Infinite
+                                                        NumberAnimation { to: 0.3; duration: 800 }
+                                                        NumberAnimation { to: 1.0; duration: 800 }
+                                                    }
+                                                }
+                                                
+                                                // Start/Script button
+                                                GlassButton {
+                                                    id: scriptButton
+                                                    text: modelData && modelData.name ? modelData.name : "Unknown"
+                                                    implicitHeight: 32
+                                                    width: parent.parent.isRunning ? parent.parent.width - 40 : parent.parent.width
+                                                    visible: !parent.parent.isRunning
+                                                    accentColor: {
+                                                        if (!modelData || !modelData.name) return "#4a90e2"
+                                                        const scriptName = modelData.name.toLowerCase()
+                                                        if (scriptName === "start" || scriptName === "dev") return "#4ade80"
+                                                        if (scriptName === "test") return "#fbbf24"
+                                                        if (scriptName === "build") return "#60a5fa"
+                                                        if (scriptName === "lint") return "#a78bfa"
+                                                        return "#4a90e2"
+                                                    }
+                                                    
+                                                    onClicked: {
+                                                        if (modelData && modelData.name && modelData.command) {
+                                                            console.log("Running script:", modelData.name, "in project:", name)
+                                                            console.log("Path:", path, "Command:", modelData.command)
+                                                            
+                                                            var pid = parent.parent.processId
+                                                            // Pass the script name, not the command
+                                                            var success = processManager.runScript(pid, modelData.name, path)
+                                                            if (success) {
+                                                                console.log("Process started successfully:", pid)
+                                                                activeProcesses[pid] = {
+                                                                    name: modelData.name,
+                                                                    projectName: name,
+                                                                    path: path
+                                                                }
+                                                                dashboard.activeProcessesChanged()
+                                                            } else {
+                                                                console.log("Failed to start process:", pid)
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                // Running state button
+                                                GlassButton {
+                                                    text: modelData && modelData.name ? modelData.name : "Running"
+                                                    implicitHeight: 32
+                                                    width: parent.parent.width - 40
+                                                    visible: parent.parent.isRunning
+                                                    accentColor: "#4ade80"
+                                                    enabled: false
+                                                }
+                                                
+                                                // Stop button
+                                                GlassButton {
+                                                    text: "⏹"
+                                                    implicitHeight: 32
+                                                    width: 32
+                                                    visible: parent.parent.isRunning
+                                                    accentColor: "#ef4444"
+                                                    
+                                                    onClicked: {
+                                                        var pid = parent.parent.processId
+                                                        console.log("Stopping process:", pid)
+                                                        processManager.stopProcess(pid)
+                                                        delete activeProcesses[pid]
+                                                        dashboard.activeProcessesChanged()
                                                     }
                                                 }
                                             }
@@ -465,14 +578,174 @@ Item {
                     // workspaceViewModel: workspaceViewModelInstance
                 }
                 
-                // Statistics panel
-                Statistics {
-                    id: statisticsPanel
+                // Active Processes panel with tabs
+                GlassCard {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    glassOpacity: 0.1
                     
-                    // This property will be set from C++ (main.cpp)
-                    // statisticsViewModel: statisticsViewModelInstance
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: 12
+                        
+                        // Tab bar
+                        Row {
+                            Layout.fillWidth: true
+                            spacing: 8
+                            
+                            GlassButton {
+                                text: "📊 Statistics"
+                                width: 120
+                                implicitHeight: 32
+                                accentColor: processTabBar.currentIndex === 0 ? "#4a90e2" : "#666666"
+                                onClicked: processTabBar.currentIndex = 0
+                            }
+                            
+                            GlassButton {
+                                text: "📋 Logs"
+                                width: 100
+                                implicitHeight: 32
+                                accentColor: processTabBar.currentIndex === 1 ? "#4a90e2" : "#666666"
+                                onClicked: processTabBar.currentIndex = 1
+                            }
+                        }
+                        
+                        // Tab content
+                        StackLayout {
+                            id: processTabBar
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            currentIndex: 0
+                            
+                            // Statistics tab
+                            Statistics {
+                                id: statisticsPanel
+                                // This property will be set from C++ (main.cpp)
+                                // statisticsViewModel: statisticsViewModelInstance
+                            }
+                            
+                            // Logs tab
+                            Item {
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    spacing: 8
+                                    
+                                    Text {
+                                        text: Object.keys(activeProcesses).length > 0 ? 
+                                              "Active Processes (" + Object.keys(activeProcesses).length + ")" : 
+                                              "No Active Processes"
+                                        font.pixelSize: 14
+                                        font.weight: Font.DemiBold
+                                        color: "#ffffff"
+                                    }
+                                    
+                                    ScrollView {
+                                        Layout.fillWidth: true
+                                        Layout.fillHeight: true
+                                        clip: true
+                                        
+                                        ColumnLayout {
+                                            width: parent.width
+                                            spacing: 8
+                                            
+                                            Repeater {
+                                                model: Object.keys(activeProcesses)
+                                                
+                                                delegate: GlassCard {
+                                                    Layout.fillWidth: true
+                                                    Layout.preferredHeight: 120
+                                                    glassOpacity: 0.08
+                                                    
+                                                    required property string modelData
+                                                    
+                                                    property var processInfo: activeProcesses[modelData] || {}
+                                                    
+                                                    ColumnLayout {
+                                                        anchors.fill: parent
+                                                        anchors.margins: 12
+                                                        spacing: 8
+                                                        
+                                                        RowLayout {
+                                                            Layout.fillWidth: true
+                                                            
+                                                            Rectangle {
+                                                                width: 8
+                                                                height: 8
+                                                                radius: 4
+                                                                color: "#4ade80"
+                                                                
+                                                                SequentialAnimation on opacity {
+                                                                    running: true
+                                                                    loops: Animation.Infinite
+                                                                    NumberAnimation { to: 0.3; duration: 800 }
+                                                                    NumberAnimation { to: 1.0; duration: 800 }
+                                                                }
+                                                            }
+                                                            
+                                                            Text {
+                                                                text: processInfo.projectName || "Unknown"
+                                                                font.pixelSize: 13
+                                                                font.weight: Font.DemiBold
+                                                                color: "#ffffff"
+                                                            }
+                                                            
+                                                            Text {
+                                                                text: " › " + (processInfo.name || "Unknown")
+                                                                font.pixelSize: 12
+                                                                color: "#4a90e2"
+                                                            }
+                                                            
+                                                            Item { Layout.fillWidth: true }
+                                                            
+                                                            GlassButton {
+                                                                text: "⏹ Stop"
+                                                                width: 70
+                                                                implicitHeight: 24
+                                                                accentColor: "#ef4444"
+                                                                
+                                                                onClicked: {
+                                                                    console.log("Stopping:", modelData)
+                                                                    processManager.stopProcess(modelData)
+                                                                    delete activeProcesses[modelData]
+                                                                    dashboard.activeProcessesChanged()
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        Text {
+                                                            text: processInfo.path || "No path"
+                                                            font.pixelSize: 10
+                                                            color: "#888888"
+                                                            elide: Text.ElideMiddle
+                                                            Layout.fillWidth: true
+                                                        }
+                                                        
+                                                        Rectangle {
+                                                            Layout.fillWidth: true
+                                                            Layout.fillHeight: true
+                                                            radius: 4
+                                                            color: "#0a0a0a"
+                                                            border.width: 1
+                                                            border.color: Qt.rgba(1, 1, 1, 0.1)
+                                                            
+                                                            Text {
+                                                                anchors.centerIn: parent
+                                                                text: "Process logs will appear here...\nClick 📋 to view full console"
+                                                                font.pixelSize: 10
+                                                                font.family: "monospace"
+                                                                color: "#666666"
+                                                                horizontalAlignment: Text.AlignHCenter
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 
                 // System status panel
@@ -509,8 +782,8 @@ Item {
                             StatusIndicator {
                                 width: parent.width
                                 label: "Processes"
-                                value: "0 active"
-                                status: "idle"
+                                value: Object.keys(activeProcesses).length + " active"
+                                status: Object.keys(activeProcesses).length > 0 ? "optimal" : "idle"
                             }
                             
                             // UI Performance
