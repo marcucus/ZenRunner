@@ -90,8 +90,10 @@ Item {
             target: workspaceViewModel
             
             function onWorkspaceCreated(workspaceId) {
-                // Check if this is our pending workspace
-                if (workspaceCreationDialog.visible && workspaceCreationDialog.pendingWorkspaceId === "") {
+                // Check if this is our pending workspace creation
+                // Only proceed if we have projects to add and haven't processed this workspace yet
+                if (workspaceCreationDialog.selectedProjectIds.length > 0 && 
+                    workspaceCreationDialog.pendingWorkspaceId === "") {
                     workspaceCreationDialog.pendingWorkspaceId = workspaceId
                     
                     // Add each selected project to the workspace
