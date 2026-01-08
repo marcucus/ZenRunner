@@ -7,8 +7,8 @@ import "./components"
 Item {
     id: root
     
-    // Property to hold the workspace view model (set from C++)
-    property var workspaceViewModel: null
+    // Property to hold the workspace view model (passed from parent or accessed globally)
+    property var workspaceViewModel
     
     // Dialog for creating/editing workspaces
     WorkspaceDialog {

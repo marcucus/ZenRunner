@@ -3,6 +3,7 @@
 #include "core/IWorkspace.hpp"
 #include "core/IProcessManager.hpp"
 #include "storage/IWorkspaceRepository.hpp"
+#include "storage/IProjectRepository.hpp"
 #include <QAbstractListModel>
 #include <QObject>
 #include <memory>
@@ -44,6 +45,12 @@ public:
      * @param manager Pointer to process manager
      */
     void setProcessManager(Core::IProcessManager* manager);
+
+    /**
+     * @brief Set the project repository
+     * @param repository Pointer to project repository
+     */
+    void setProjectRepository(Storage::IProjectRepository* repository);
 
     // QAbstractListModel interface
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -159,6 +166,7 @@ signals:
 private:
     std::vector<std::shared_ptr<Core::IWorkspace>> workspaces_;
     Storage::IWorkspaceRepository* repository_;
+    Storage::IProjectRepository* projectRepository_;
     Core::IProcessManager* processManager_;
 
     /**

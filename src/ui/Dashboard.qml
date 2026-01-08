@@ -75,10 +75,40 @@ Item {
         height: 600
         
         property var selectedProjectIndices: []
+        property var selectedProjectIds: []  // Store project IDs for adding to workspace
+        property string pendingWorkspaceId: ""  // Store workspace ID after creation
         
         onOpened: {
             selectedProjectIndices = []
+            selectedProjectIds = []
+            pendingWorkspaceId = ""
             workspaceNameField.text = ""
+        }
+        
+        // Listen for workspace creation to add projects
+        Connections {
+            target: workspaceViewModel
+            
+            function onWorkspaceCreated(workspaceId) {
+                // Check if this is our pending workspace
+                if (workspaceCreationDialog.visible && workspaceCreationDialog.pendingWorkspaceId === "") {
+                    workspaceCreationDialog.pendingWorkspaceId = workspaceId
+                    
+                    // Add each selected project to the workspace
+                    console.log("Adding", workspaceCreationDialog.selectedProjectIds.length, "projects to workspace", workspaceId)
+                    for (var i = 0; i < workspaceCreationDialog.selectedProjectIds.length; i++) {
+                        const projectId = workspaceCreationDialog.selectedProjectIds[i]
+                        console.log("Adding project", projectId, "to workspace", workspaceId)
+                        workspaceViewModel.addProjectToWorkspace(workspaceId, projectId)
+                    }
+                    
+                    // Clear and close
+                    workspaceNameField.text = ""
+                    workspaceCreationDialog.selectedProjectIndices = []
+                    workspaceCreationDialog.selectedProjectIds = []
+                    workspaceCreationDialog.close()
+                }
+            }
         }
         
         ColumnLayout {
@@ -126,6 +156,7 @@ Item {
                     radius: 8
                     
                     required property int index
+                    required property string projectId
                     required property string name
                     required property string path
                     
@@ -143,12 +174,23 @@ Item {
                                     var arr = workspaceCreationDialog.selectedProjectIndices
                                     arr.push(index)
                                     workspaceCreationDialog.selectedProjectIndices = arr
+                                    
+                                    var ids = workspaceCreationDialog.selectedProjectIds
+                                    ids.push(projectId)
+                                    workspaceCreationDialog.selectedProjectIds = ids
                                 } else {
                                     var arr = workspaceCreationDialog.selectedProjectIndices
                                     const idx = arr.indexOf(index)
                                     if (idx > -1) {
                                         arr.splice(idx, 1)
                                         workspaceCreationDialog.selectedProjectIndices = arr
+                                    }
+                                    
+                                    var ids = workspaceCreationDialog.selectedProjectIds
+                                    const idIdx = ids.indexOf(projectId)
+                                    if (idIdx > -1) {
+                                        ids.splice(idIdx, 1)
+                                        workspaceCreationDialog.selectedProjectIds = ids
                                     }
                                 }
                             }
@@ -194,14 +236,11 @@ Item {
                     onClicked: {
                         console.log("Creating workspace:", workspaceNameField.text, "with", workspaceCreationDialog.selectedProjectIndices.length, "projects")
                         
-                        // For now, just create the workspace with name and description
-                        // TODO: Add projects to workspace after creation
-                        workspaceViewModel.createWorkspace(workspaceNameField.text, workspaceCreationDialog.selectedProjectIndices.length + " projects selected")
-                        
-                        // Clear and close
-                        workspaceNameField.text = ""
-                        workspaceCreationDialog.selectedProjectIndices = []
-                        workspaceCreationDialog.close()
+                        // Create the workspace - projects will be added via the workspaceCreated signal handler
+                        workspaceViewModel.createWorkspace(
+                            workspaceNameField.text, 
+                            workspaceCreationDialog.selectedProjectIndices.length + " projects"
+                        )
                     }
                 }
             }
@@ -535,8 +574,8 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     
-                    // This property will be set from C++ (main.cpp)
-                    // workspaceViewModel: workspaceViewModelInstance
+                    // Pass the global workspaceViewModel context property
+                    workspaceViewModel: workspaceViewModel
                 }
                 
                 // Statistics panel
