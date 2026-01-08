@@ -412,8 +412,14 @@ Item {
                                             required property var modelData
                                             required property int index
                                             
-                                            property string processId: name + "_" + (modelData && modelData.name ? modelData.name : "")
+                                            // Access parent delegate's name and path properties
+                                            property string projectName: name
+                                            property string projectPath: path
+                                            property string processId: (projectName || "unknown") + "_" + (modelData && modelData.name ? modelData.name : "")
                                             property bool isRunning: false
+                                            
+                                            // ProcessState enum values for clarity
+                                            readonly property int processStateRunning: 2
                                             
                                             text: {
                                                 if (!modelData || !modelData.name) return "Unknown"
@@ -440,35 +446,39 @@ Item {
                                                 function onProcessStateChanged(id, newState) {
                                                     if (id === processId) {
                                                         // ProcessState enum: NotStarted=0, Starting=1, Running=2, Paused=3, Stopping=4, Stopped=5, Finished=6, Crashed=7
-                                                        isRunning = (newState === 2) // Running state
+                                                        isRunning = (newState === processStateRunning)
                                                     }
                                                 }
                                             }
                                             
                                             onClicked: {
                                                 if (modelData && modelData.name && modelData.command) {
-                                                    console.log("Running script:", modelData.name, "in project:", name)
-                                                    console.log("Path:", path, "Command:", modelData.command)
+                                                    console.log("Running script:", modelData.name, "in project:", projectName)
+                                                    console.log("Path:", projectPath, "Command:", modelData.command)
                                                     
-                                                    var success = processManager.runScript(processId, modelData.command, path)
+                                                    var success = processManager.runScript(processId, modelData.command, projectPath)
                                                     if (success) {
                                                         console.log("Process started successfully:", processId)
                                                         // Show in-app toast notification
-                                                        toast.show("Started '" + modelData.name + "' in " + name, Qt.rgba(0.2, 0.6, 0.3, 0.95))
-                                                        // Show native notification
-                                                        platformManager.showNotification(
-                                                            "Script Started",
-                                                            "Running '" + modelData.name + "' in " + name
-                                                        )
+                                                        toast.show("Started '" + modelData.name + "' in " + projectName, Qt.rgba(0.2, 0.6, 0.3, 0.95))
+                                                        // Show native notification if available
+                                                        if (typeof platformManager !== 'undefined' && platformManager && platformManager.showNotification) {
+                                                            platformManager.showNotification(
+                                                                "Script Started",
+                                                                "Running '" + modelData.name + "' in " + projectName
+                                                            )
+                                                        }
                                                     } else {
                                                         console.log("Failed to start process:", processId)
                                                         // Show error toast notification
                                                         toast.show("Failed to start '" + modelData.name + "'", Qt.rgba(0.8, 0.2, 0.2, 0.95))
-                                                        // Show native notification
-                                                        platformManager.showNotification(
-                                                            "Failed to Start",
-                                                            "Could not start '" + modelData.name + "' in " + name
-                                                        )
+                                                        // Show native notification if available
+                                                        if (typeof platformManager !== 'undefined' && platformManager && platformManager.showNotification) {
+                                                            platformManager.showNotification(
+                                                                "Failed to Start",
+                                                                "Could not start '" + modelData.name + "' in " + projectName
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             }

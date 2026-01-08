@@ -22,17 +22,9 @@ Rectangle {
     anchors.bottom: parent.bottom
     anchors.bottomMargin: 80
     
-    // Shadow effect
-    layer.enabled: true
-    layer.effect: Item {
-        Rectangle {
-            anchors.fill: parent
-            color: "transparent"
-            border.color: Qt.rgba(1, 1, 1, 0.1)
-            border.width: 1
-            radius: 12
-        }
-    }
+    // Border for visual depth
+    border.width: 1
+    border.color: Qt.rgba(1, 1, 1, 0.1)
     
     Text {
         id: messageText
