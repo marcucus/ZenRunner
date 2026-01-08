@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import "./components"
@@ -7,6 +8,23 @@ import "./components"
 Item {
     id: dashboard
     
+    // Listen to projectManager signals
+    Connections {
+        target: projectManager
+        
+        function onProjectsDetected(count) {
+            console.log("Dashboard: Projects detected:", count)
+        }
+        
+        function onScanComplete(success, message) {
+            console.log("Dashboard: Scan complete:", success, message)
+        }
+        
+        function onProjectCountChanged() {
+            console.log("Dashboard: Project count changed to:", projectManager.projectCount)
+        }
+    }
+    
     // File dialog for folder selection
     FolderDialog {
         id: folderDialog
@@ -14,6 +32,149 @@ Item {
         onAccepted: {
             console.log("Selected folder:", selectedFolder)
             projectManager.scanFolder(selectedFolder, 3)
+        }
+    }
+    
+    // Workspace creation dialog
+    Dialog {
+        id: workspaceCreationDialog
+        title: "Create New Workspace"
+        modal: true
+        anchors.centerIn: Overlay.overlay
+        width: 500
+        height: 600
+        
+        property var selectedProjectIndices: []
+        
+        onOpened: {
+            selectedProjectIndices = []
+            workspaceNameField.text = ""
+        }
+        
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 16
+            
+            Text {
+                text: "Workspace Name"
+                font.pixelSize: 14
+                color: "#ffffff"
+            }
+            
+            TextField {
+                id: workspaceNameField
+                Layout.fillWidth: true
+                placeholderText: "Enter workspace name..."
+                font.pixelSize: 14
+            }
+            
+            Text {
+                text: "Select Projects"
+                font.pixelSize: 14
+                color: "#ffffff"
+                Layout.topMargin: 8
+            }
+            
+            // Project selection list
+            ListView {
+                id: projectSelectionList
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                spacing: 8
+                
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AsNeeded
+                }
+                
+                model: projectManager
+                
+                delegate: Rectangle {
+                    width: ListView.view.width
+                    height: 40
+                    color: checkBox.checked ? Qt.rgba(0.3, 0.6, 1.0, 0.2) : Qt.rgba(1, 1, 1, 0.05)
+                    radius: 8
+                    
+                    required property int index
+                    required property string name
+                    required property string path
+                    
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 8
+                        
+                        CheckBox {
+                            id: checkBox
+                            checked: false
+                            
+                            onCheckedChanged: {
+                                if (checked) {
+                                    var arr = workspaceCreationDialog.selectedProjectIndices
+                                    arr.push(index)
+                                    workspaceCreationDialog.selectedProjectIndices = arr
+                                } else {
+                                    var arr = workspaceCreationDialog.selectedProjectIndices
+                                    const idx = arr.indexOf(index)
+                                    if (idx > -1) {
+                                        arr.splice(idx, 1)
+                                        workspaceCreationDialog.selectedProjectIndices = arr
+                                    }
+                                }
+                            }
+                        }
+                        
+                        Column {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            
+                            Text {
+                                text: name
+                                font.pixelSize: 13
+                                font.weight: Font.DemiBold
+                                color: "#ffffff"
+                            }
+                            
+                            Text {
+                                text: path
+                                font.pixelSize: 10
+                                color: "#888888"
+                                elide: Text.ElideMiddle
+                                width: parent.width
+                            }
+                        }
+                    }
+                }
+            }
+            
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 12
+                
+                Item { Layout.fillWidth: true }
+                
+                Button {
+                    text: "Cancel"
+                    onClicked: workspaceCreationDialog.close()
+                }
+                
+                Button {
+                    text: "Create"
+                    enabled: workspaceNameField.text.trim() !== "" && workspaceCreationDialog.selectedProjectIndices.length > 0
+                    onClicked: {
+                        console.log("Creating workspace:", workspaceNameField.text, "with", workspaceCreationDialog.selectedProjectIndices.length, "projects")
+                        
+                        // For now, just create the workspace with name and description
+                        // TODO: Add projects to workspace after creation
+                        workspaceViewModel.createWorkspace(workspaceNameField.text, workspaceCreationDialog.selectedProjectIndices.length + " projects selected")
+                        
+                        // Clear and close
+                        workspaceNameField.text = ""
+                        workspaceCreationDialog.selectedProjectIndices = []
+                        workspaceCreationDialog.close()
+                    }
+                }
+            }
         }
     }
     
@@ -64,6 +225,9 @@ Item {
                         text: "+ New Workspace"
                         accentColor: "#7c4dff"
                         width: 150
+                        onClicked: {
+                            workspaceCreationDialog.open()
+                        }
                     }
                 }
             }
@@ -126,24 +290,46 @@ Item {
                     
                     // Projects list
                     ListView {
+                        id: projectListView
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         spacing: 12
                         clip: true
                         
+                        ScrollBar.vertical: ScrollBar {
+                            policy: ScrollBar.AsNeeded
+                        }
+                        
                         model: projectManager
+                        
+                        // Empty state message
+                        Text {
+                            anchors.centerIn: parent
+                            visible: projectListView.count === 0
+                            text: "No projects found\nClick 'Scan Folder' to add projects"
+                            font.pixelSize: 14
+                            color: "#666666"
+                            horizontalAlignment: Text.AlignHCenter
+                        }
                         
                         delegate: GlassCard {
                             width: ListView.view.width
+                            height: 150  // Fixed height for now
                             glassOpacity: 0.08
                             
+                            required property int index
                             required property string name
                             required property string path
                             required property int scriptCount
                             required property var scripts
                             
+                            Component.onCompleted: {
+                                console.log("Project delegate created:", index, name, "with", scriptCount, "scripts")
+                            }
+                            
                             ColumnLayout {
                                 anchors.fill: parent
+                                anchors.margins: 16
                                 spacing: 8
                                 
                                 // Project header
@@ -185,6 +371,7 @@ Item {
                                 
                                 // Script action buttons
                                 Flow {
+                                    id: scriptFlow
                                     Layout.fillWidth: true
                                     spacing: 8
                                     
@@ -194,10 +381,11 @@ Item {
                                         GlassButton {
                                             required property var modelData
                                             
-                                            text: modelData.name
+                                            text: modelData && modelData.name ? modelData.name : "Unknown"
                                             implicitHeight: 32
                                             width: Math.max(80, implicitWidth)
                                             accentColor: {
+                                                if (!modelData || !modelData.name) return "#4a90e2"
                                                 const scriptName = modelData.name.toLowerCase()
                                                 if (scriptName === "start" || scriptName === "dev") return "#4ade80"
                                                 if (scriptName === "test") return "#fbbf24"
@@ -207,8 +395,18 @@ Item {
                                             }
                                             
                                             onClicked: {
-                                                console.log("Running script:", modelData.name, "with command:", modelData.command)
-                                                // TODO: Execute script via ProcessManager
+                                                if (modelData && modelData.name && modelData.command) {
+                                                    console.log("Running script:", modelData.name, "in project:", name)
+                                                    console.log("Path:", path, "Command:", modelData.command)
+                                                    
+                                                    var processId = name + "_" + modelData.name
+                                                    var success = processManager.runScript(processId, modelData.command, path)
+                                                    if (success) {
+                                                        console.log("Process started successfully:", processId)
+                                                    } else {
+                                                        console.log("Failed to start process:", processId)
+                                                    }
+                                                }
                                             }
                                         }
                                     }

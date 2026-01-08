@@ -29,7 +29,7 @@ public:
      * @brief Set the process manager for this workspace
      * @param manager Pointer to process manager
      */
-    void setProcessManager(IProcessManager* manager) {
+    void setProcessManager(IProcessManager* manager) override {
         processManager_ = manager;
     }
 

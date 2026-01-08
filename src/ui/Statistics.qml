@@ -3,10 +3,25 @@ import QtQuick.Layouts
 import "./components"
 
 // Statistics dashboard panel showing CPU/RAM usage per project
-GlassCard {
-    id: statisticsPanel
+Item {
+    id: root
     
     property var statisticsViewModel: null
+    
+    // Spike notification - must be outside GlassCard
+    Connections {
+        target: statisticsViewModel
+        
+        function onSpikeDetected(processId, cpuPercent, memoryMB) {
+            console.log("⚠️ Resource spike detected:", processId, 
+                       "CPU:", cpuPercent.toFixed(1) + "%", 
+                       "RAM:", memoryMB.toFixed(1) + "MB")
+        }
+    }
+
+GlassCard {
+    id: statisticsPanel
+    anchors.fill: parent
     
     // Constants for display
     readonly property string labelText: "Avg"
@@ -359,15 +374,5 @@ GlassCard {
             visible: statisticsViewModel !== null && statisticsViewModel.processCount > 0
         }
     }
-    
-    // Spike notification
-    Connections {
-        target: statisticsViewModel
-        
-        function onSpikeDetected(processId, cpuPercent, memoryMB) {
-            console.log("⚠️ Resource spike detected:", processId, 
-                       "CPU:", cpuPercent.toFixed(1) + "%", 
-                       "RAM:", memoryMB.toFixed(1) + "MB")
-        }
-    }
-}
+} // end GlassCard
+} // end Item root

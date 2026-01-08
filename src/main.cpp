@@ -3,6 +3,7 @@
 #include "core/CircularBuffer.h"
 #include "core/MemoryMonitor.hpp"
 #include "ui/ProjectManager.h"
+#include "ui/WorkspaceViewModel.h"
 #include "types/CommonTypes.h"
 #include "storage/SettingsManager.h"
 #include "storage/WorkspaceRepository.h"
@@ -11,7 +12,7 @@
 #include "platform/NativePlatformManager.h"
 #include "platform/ISystemTray.hpp"
 
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickWindow>
@@ -35,7 +36,10 @@ int main(int argc, char *argv[]) {
     // Use threaded render loop for consistent 60 FPS
     qputenv("QSG_RENDER_LOOP", "threaded");
     
-    QGuiApplication app(argc, argv);
+    // Use Basic style to avoid macOS native style customization warnings
+    qputenv("QT_QUICK_CONTROLS_STYLE", "Basic");
+    
+    QApplication app(argc, argv);
     
     // Set application metadata for QSettings
     QCoreApplication::setOrganizationName("ZenRunner");
@@ -108,6 +112,13 @@ int main(int argc, char *argv[]) {
     // Create ProjectManager instance
     UI::ProjectManager projectManager;
     
+    // Create WorkspaceViewModel for workspace management
+    UI::WorkspaceViewModel workspaceViewModel;
+    workspaceViewModel.setRepository(workspaceRepo.get());
+    workspaceViewModel.setProcessManager(dynamic_cast<Core::IProcessManager*>(&processManager));
+    workspaceViewModel.loadWorkspaces();
+    qDebug() << "Loaded" << workspaceViewModel.count() << "workspaces";
+    
     // Create QML engine
     QQmlApplicationEngine engine;
     
@@ -115,6 +126,7 @@ int main(int argc, char *argv[]) {
     engine.rootContext()->setContextProperty("projectManager", &projectManager);
     engine.rootContext()->setContextProperty("processManager", &processManager);
     engine.rootContext()->setContextProperty("platformManager", &platformManager);
+    engine.rootContext()->setContextProperty("workspaceViewModel", &workspaceViewModel);
     
     // Connect process crash events to notification system
     QObject::connect(&processManager, &ProcessManager::processCrashed,

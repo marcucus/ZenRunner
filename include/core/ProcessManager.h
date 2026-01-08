@@ -234,6 +234,15 @@ public:
      * @brief Check if any process is running
      */
     [[nodiscard]] bool hasRunningProcesses() const;
+    
+    /**
+     * @brief Create and start a process from QML
+     * @param id Process identifier
+     * @param command Command to execute
+     * @param workingDir Working directory
+     * @return true if process was created and started
+     */
+    Q_INVOKABLE bool runScript(const QString& id, const QString& command, const QString& workingDir);
 
 signals:
     /**

@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(ZenRunner VERSION 1.0.0 LANGUAGES CXX)
+if(APPLE)
+    project(ZenRunner VERSION 1.0.0 LANGUAGES CXX OBJCXX)
+else()
+    project(ZenRunner VERSION 1.0.0 LANGUAGES CXX)
+endif()
 
 # C++ Standard
 set(CMAKE_CXX_STANDARD 20)
@@ -48,10 +52,17 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_options(
         $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-flto>  # Link-time optimization
     )
-    add_link_options(
-        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wl,--gc-sections>  # Remove unused sections
-        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-flto>
-    )
+    if(APPLE)
+        add_link_options(
+            -Wl,-dead_strip  # Remove unused sections (macOS)
+            -flto
+        )
+    else()
+        add_link_options(
+            $<$<CXX_COMPILER_ID:GNU,Clang>:-Wl,--gc-sections>  # Remove unused sections (Linux)
+            $<$<CXX_COMPILER_ID:GNU,Clang>:-flto>
+        )
+    endif()
 endif()
 
 # ========================================
@@ -99,6 +110,14 @@ set(PLATFORM_SOURCES
     include/platform/PlatformHelper.h
 )
 
+# Add macOS-specific sources
+if(APPLE)
+    list(APPEND PLATFORM_SOURCES
+        src/platform/MacOSNativeEffects.mm
+        src/platform/MacOSNativeEffects.h
+    )
+endif()
+
 # Storage Layer sources
 set(STORAGE_SOURCES
     # Implementations of storage interfaces:
@@ -119,6 +138,8 @@ set(UI_SOURCES
     include/ui/ProjectManager.h
     src/ui/StatisticsViewModel.cpp
     include/ui/StatisticsViewModel.h
+    src/ui/WorkspaceViewModel.cpp
+    src/ui/WorkspaceViewModel.h
 )
 
 # Factory implementation (to be implemented)

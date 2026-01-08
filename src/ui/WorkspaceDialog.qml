@@ -117,19 +117,6 @@ Dialog {
         }
     }
     
-    // Custom button styling
-    onAboutToShow: {
-        // Style the OK button
-        for (var i = 0; i < footer.count; i++) {
-            var button = footer.itemAt(i)
-            if (button && button.text === "OK") {
-                button.background.color = Qt.binding(function() {
-                    return button.down ? "#3a7bc2" : "#4a90e2"
-                })
-            }
-        }
-    }
-    
     onAccepted: {
         // Validation
         if (nameField.text.trim() === "") {

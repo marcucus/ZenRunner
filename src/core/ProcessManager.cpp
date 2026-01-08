@@ -388,6 +388,36 @@ void ProcessManager::stopProcess(const QString& id, int timeoutMs) {
     }
 }
 
+bool ProcessManager::runScript(const QString& id, const QString& command, const QString& workingDir) {
+    // Remove existing process with same ID if it exists
+    if (getProcess(id)) {
+        removeProcess(id);
+    }
+    
+    // Create process config
+    ProcessConfig config;
+    config.command = command;
+    config.workingDirectory = workingDir;
+    config.captureOutput = true;
+    
+    // Create the process
+    auto result = createProcess(id, config);
+    if (result.isErr()) {
+        qWarning() << "Failed to create process:" << result.error();
+        return false;
+    }
+    
+    // Start the process
+    auto startResult = startProcess(id);
+    if (startResult.isErr()) {
+        qWarning() << "Failed to start process:" << startResult.error();
+        removeProcess(id);
+        return false;
+    }
+    
+    return true;
+}
+
 void ProcessManager::startAll(bool sequential) {
     std::lock_guard lock(processesMutex_);
     

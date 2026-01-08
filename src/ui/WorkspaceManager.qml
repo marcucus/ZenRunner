@@ -4,8 +4,8 @@ import QtQuick.Controls
 import "./components"
 
 // Workspace management interface for grouping and controlling projects
-GlassCard {
-    id: workspaceManager
+Item {
+    id: root
     
     // Property to hold the workspace view model (set from C++)
     property var workspaceViewModel: null
@@ -13,6 +13,7 @@ GlassCard {
     // Dialog for creating/editing workspaces
     WorkspaceDialog {
         id: workspaceDialog
+        parent: Overlay.overlay
         
         onAccepted: {
             if (workspaceDialog.isEditMode) {
@@ -35,6 +36,10 @@ GlassCard {
             }
         }
     }
+    
+    GlassCard {
+        id: workspaceManager
+        anchors.fill: parent
     
     ColumnLayout {
         anchors.fill: parent
@@ -326,10 +331,12 @@ GlassCard {
             }
         }
     }
+    } // end GlassCard
     
     // Delete confirmation dialog
     Dialog {
         id: deleteConfirmDialog
+        parent: Overlay.overlay
         
         property string workspaceId: ""
         property string workspaceName: ""
@@ -339,7 +346,6 @@ GlassCard {
         standardButtons: Dialog.Yes | Dialog.No
         
         width: 400
-        anchors.centerIn: parent
         
         background: Rectangle {
             color: Qt.rgba(0.1, 0.1, 0.15, 0.95)
@@ -375,4 +381,5 @@ GlassCard {
             }
         }
     }
-}
+    
+} // end Item root

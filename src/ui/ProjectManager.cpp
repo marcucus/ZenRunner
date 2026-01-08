@@ -1,6 +1,7 @@
 #include "ui/ProjectManager.h"
 #include "core/Project.h"
 #include <QDebug>
+#include <QUrl>
 
 namespace ZenRunner::UI {
 
@@ -56,7 +57,13 @@ QHash<int, QByteArray> ProjectManager::roleNames() const {
 }
 
 void ProjectManager::scanFolder(const QString& folderPath, int maxDepth) {
-    qDebug() << "Scanning folder:" << folderPath << "with max depth:" << maxDepth;
+    // Convert URL to local path if needed (QML FolderDialog returns file:// URLs)
+    QString localPath = folderPath;
+    if (folderPath.startsWith("file://")) {
+        localPath = QUrl(folderPath).toLocalFile();
+    }
+    
+    qDebug() << "Scanning folder:" << localPath << "with max depth:" << maxDepth;
 
     // Clear existing projects
     beginResetModel();
@@ -65,31 +72,37 @@ void ProjectManager::scanFolder(const QString& folderPath, int maxDepth) {
     emit projectCountChanged();
 
     // Scan for project paths
-    auto projectPaths = ProjectScanner::scanDirectory(folderPath, maxDepth);
+    auto projectPaths = ProjectScanner::scanDirectory(localPath, maxDepth);
     
     if (projectPaths.empty()) {
-        qDebug() << "No projects found in" << folderPath;
-        emit scanComplete(true, QString("No projects found in %1").arg(folderPath));
+        qDebug() << "No projects found in" << localPath;
+        emit scanComplete(true, QString("No projects found in %1").arg(localPath));
         return;
     }
 
     qDebug() << "Found" << projectPaths.size() << "potential projects";
 
-    // Load each project
-    beginInsertRows(QModelIndex(), 0, static_cast<int>(projectPaths.size()) - 1);
-    
+    // Load each project first to know how many succeeded
+    std::vector<Project> loadedProjects;
     for (const auto& path : projectPaths) {
         auto result = Project::fromDirectory(path);
         if (result.isOk()) {
-            projects_.push_back(std::move(result.value()));
-            qDebug() << "Loaded project:" << projects_.back().name() 
-                     << "with" << projects_.back().scripts().size() << "scripts";
+            loadedProjects.push_back(std::move(result.value()));
+            qDebug() << "Loaded project:" << loadedProjects.back().name() 
+                     << "with" << loadedProjects.back().scripts().size() << "scripts";
         } else {
             qDebug() << "Failed to load project from" << path << ":" << result.error();
         }
     }
     
-    endInsertRows();
+    // Now insert the successfully loaded projects
+    if (!loadedProjects.empty()) {
+        beginInsertRows(QModelIndex(), 0, static_cast<int>(loadedProjects.size()) - 1);
+        for (auto& project : loadedProjects) {
+            projects_.push_back(std::move(project));
+        }
+        endInsertRows();
+    }
     
     emit projectCountChanged();
     emit projectsDetected(static_cast<int>(projects_.size()));
