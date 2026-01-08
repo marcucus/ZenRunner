@@ -115,7 +115,6 @@ int main(int argc, char *argv[]) {
     // Create WorkspaceViewModel for workspace management
     UI::WorkspaceViewModel workspaceViewModel;
     workspaceViewModel.setRepository(workspaceRepo.get());
-    workspaceViewModel.setProjectRepository(projectRepo.get());
     workspaceViewModel.setProcessManager(dynamic_cast<Core::IProcessManager*>(&processManager));
     workspaceViewModel.loadWorkspaces();
     qDebug() << "Loaded" << workspaceViewModel.count() << "workspaces";

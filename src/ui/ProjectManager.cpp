@@ -25,8 +25,6 @@ QVariant ProjectManager::data(const QModelIndex& index, int role) const {
     const auto& project = projects_[index.row()];
 
     switch (role) {
-    case IdRole:
-        return project.id();
     case NameRole:
         return project.name();
     case PathRole:
@@ -51,7 +49,6 @@ QVariant ProjectManager::data(const QModelIndex& index, int role) const {
 
 QHash<int, QByteArray> ProjectManager::roleNames() const {
     QHash<int, QByteArray> roles;
-    roles[IdRole] = "projectId";
     roles[NameRole] = "name";
     roles[PathRole] = "path";
     roles[ScriptCountRole] = "scriptCount";

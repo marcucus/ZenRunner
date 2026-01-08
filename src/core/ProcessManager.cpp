@@ -89,6 +89,20 @@ Result<bool> AsyncProcess::start() {
     // Start the process asynchronously
     process_->start();
     
+    // Wait briefly to detect immediate startup failures (e.g., command not found)
+    // This allows us to return an error synchronously for obvious failures
+    if (!process_->waitForStarted(100)) {
+        const QProcess::ProcessError error = process_->error();
+        if (error != QProcess::UnknownError && error != QProcess::Timedout) {
+            // Process failed to start - get error message
+            const QString errorMsg = processErrorToString(error);
+            setState(ProcessState::Crashed);
+            addLogEntry(QString("Failed to start: %1").arg(errorMsg), 
+                       LogLevel::Critical, true);
+            return Result<bool>::Err(errorMsg);
+        }
+    }
+    
     // The onStarted() slot will be called when the process actually starts
     return Result<bool>::Ok(true);
 }

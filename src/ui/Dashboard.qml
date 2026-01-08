@@ -8,12 +8,6 @@ import "./components"
 Item {
     id: dashboard
     
-    // Toast notification for in-app feedback
-    Toast {
-        id: toast
-        z: 1000
-    }
-    
     // Listen to projectManager signals
     Connections {
         target: projectManager
@@ -28,30 +22,6 @@ Item {
         
         function onProjectCountChanged() {
             console.log("Dashboard: Project count changed to:", projectManager.projectCount)
-        }
-    }
-    
-    // Listen to processManager signals for global notifications
-    Connections {
-        target: processManager
-        
-        function onProcessFinished(id, exitCode) {
-            console.log("Dashboard: Process finished:", id, "exit code:", exitCode)
-            if (exitCode === 0) {
-                toast.show("Process '" + id + "' completed successfully", Qt.rgba(0.2, 0.6, 0.3, 0.95))
-            } else {
-                toast.show("Process '" + id + "' exited with code " + exitCode, Qt.rgba(0.8, 0.6, 0.2, 0.95))
-            }
-        }
-        
-        function onProcessCrashed(id, exitCode) {
-            console.log("Dashboard: Process crashed:", id, "exit code:", exitCode)
-            toast.show("Process '" + id + "' crashed!", Qt.rgba(0.8, 0.2, 0.2, 0.95))
-        }
-        
-        function onProcessError(id, error) {
-            console.log("Dashboard: Process error:", id, error)
-            toast.show("Error in '" + id + "': " + error, Qt.rgba(0.8, 0.2, 0.2, 0.95))
         }
     }
     
@@ -75,46 +45,10 @@ Item {
         height: 600
         
         property var selectedProjectIndices: []
-        property var selectedProjectIds: []  // Store project IDs for adding to workspace
-        property string pendingWorkspaceId: ""  // Store workspace ID after creation
-        property bool isCreating: false  // Flag to prevent multiple simultaneous creations
         
         onOpened: {
             selectedProjectIndices = []
-            selectedProjectIds = []
-            pendingWorkspaceId = ""
-            isCreating = false
             workspaceNameField.text = ""
-        }
-        
-        // Listen for workspace creation to add projects
-        Connections {
-            target: workspaceViewModel
-            
-            function onWorkspaceCreated(workspaceId) {
-                // Check if this is our pending workspace creation
-                // Only proceed if we're in creation mode, have projects to add, and haven't processed yet
-                if (workspaceCreationDialog.isCreating && 
-                    workspaceCreationDialog.selectedProjectIds.length > 0 && 
-                    workspaceCreationDialog.pendingWorkspaceId === "") {
-                    workspaceCreationDialog.pendingWorkspaceId = workspaceId
-                    
-                    // Add each selected project to the workspace
-                    console.log("Adding", workspaceCreationDialog.selectedProjectIds.length, "projects to workspace", workspaceId)
-                    for (var i = 0; i < workspaceCreationDialog.selectedProjectIds.length; i++) {
-                        const projectId = workspaceCreationDialog.selectedProjectIds[i]
-                        console.log("Adding project", projectId, "to workspace", workspaceId)
-                        workspaceViewModel.addProjectToWorkspace(workspaceId, projectId)
-                    }
-                    
-                    // Clear state and close
-                    workspaceCreationDialog.isCreating = false
-                    workspaceNameField.text = ""
-                    workspaceCreationDialog.selectedProjectIndices = []
-                    workspaceCreationDialog.selectedProjectIds = []
-                    workspaceCreationDialog.close()
-                }
-            }
         }
         
         ColumnLayout {
@@ -162,7 +96,6 @@ Item {
                     radius: 8
                     
                     required property int index
-                    required property string projectId
                     required property string name
                     required property string path
                     
@@ -180,23 +113,12 @@ Item {
                                     var arr = workspaceCreationDialog.selectedProjectIndices
                                     arr.push(index)
                                     workspaceCreationDialog.selectedProjectIndices = arr
-                                    
-                                    var ids = workspaceCreationDialog.selectedProjectIds
-                                    ids.push(projectId)
-                                    workspaceCreationDialog.selectedProjectIds = ids
                                 } else {
                                     var arr = workspaceCreationDialog.selectedProjectIndices
                                     const idx = arr.indexOf(index)
                                     if (idx > -1) {
                                         arr.splice(idx, 1)
                                         workspaceCreationDialog.selectedProjectIndices = arr
-                                    }
-                                    
-                                    var ids = workspaceCreationDialog.selectedProjectIds
-                                    const idIdx = ids.indexOf(projectId)
-                                    if (idIdx > -1) {
-                                        ids.splice(idIdx, 1)
-                                        workspaceCreationDialog.selectedProjectIds = ids
                                     }
                                 }
                             }
@@ -238,20 +160,18 @@ Item {
                 
                 Button {
                     text: "Create"
-                    enabled: !workspaceCreationDialog.isCreating && 
-                             workspaceNameField.text.trim() !== "" && 
-                             workspaceCreationDialog.selectedProjectIds.length > 0
+                    enabled: workspaceNameField.text.trim() !== "" && workspaceCreationDialog.selectedProjectIndices.length > 0
                     onClicked: {
-                        console.log("Creating workspace:", workspaceNameField.text, "with", workspaceCreationDialog.selectedProjectIds.length, "projects")
+                        console.log("Creating workspace:", workspaceNameField.text, "with", workspaceCreationDialog.selectedProjectIndices.length, "projects")
                         
-                        // Set flag to indicate we're creating a workspace
-                        workspaceCreationDialog.isCreating = true
+                        // For now, just create the workspace with name and description
+                        // TODO: Add projects to workspace after creation
+                        workspaceViewModel.createWorkspace(workspaceNameField.text, workspaceCreationDialog.selectedProjectIndices.length + " projects selected")
                         
-                        // Create the workspace - projects will be added via the workspaceCreated signal handler
-                        workspaceViewModel.createWorkspace(
-                            workspaceNameField.text, 
-                            workspaceCreationDialog.selectedProjectIds.length + " projects"
-                        )
+                        // Clear and close
+                        workspaceNameField.text = ""
+                        workspaceCreationDialog.selectedProjectIndices = []
+                        workspaceCreationDialog.close()
                     }
                 }
             }
@@ -299,9 +219,6 @@ Item {
                         text: "+ Import Project"
                         accentColor: "#4a90e2"
                         width: 140
-                        onClicked: {
-                            folderDialog.open()
-                        }
                     }
                     
                     GlassButton {
@@ -463,26 +380,11 @@ Item {
                                         
                                         GlassButton {
                                             required property var modelData
-                                            required property int index
                                             
-                                            // Access parent delegate's name and path properties
-                                            property string projectName: name
-                                            property string projectPath: path
-                                            property string processId: (projectName || "unknown") + "_" + (modelData && modelData.name ? modelData.name : "")
-                                            property bool isRunning: false
-                                            
-                                            // ProcessState enum values for clarity
-                                            readonly property int processStateRunning: 2
-                                            
-                                            text: {
-                                                if (!modelData || !modelData.name) return "Unknown"
-                                                if (isRunning) return modelData.name + " ●"
-                                                return modelData.name
-                                            }
+                                            text: modelData && modelData.name ? modelData.name : "Unknown"
                                             implicitHeight: 32
                                             width: Math.max(80, implicitWidth)
                                             accentColor: {
-                                                if (isRunning) return "#4ade80"
                                                 if (!modelData || !modelData.name) return "#4a90e2"
                                                 const scriptName = modelData.name.toLowerCase()
                                                 if (scriptName === "start" || scriptName === "dev") return "#4ade80"
@@ -492,46 +394,17 @@ Item {
                                                 return "#4a90e2"
                                             }
                                             
-                                            // Listen for process state changes
-                                            Connections {
-                                                target: processManager
-                                                
-                                                function onProcessStateChanged(id, newState) {
-                                                    if (id === processId) {
-                                                        // ProcessState enum: NotStarted=0, Starting=1, Running=2, Paused=3, Stopping=4, Stopped=5, Finished=6, Crashed=7
-                                                        isRunning = (newState === processStateRunning)
-                                                    }
-                                                }
-                                            }
-                                            
                                             onClicked: {
                                                 if (modelData && modelData.name && modelData.command) {
-                                                    console.log("Running script:", modelData.name, "in project:", projectName)
-                                                    console.log("Path:", projectPath, "Command:", modelData.command)
+                                                    console.log("Running script:", modelData.name, "in project:", name)
+                                                    console.log("Path:", path, "Command:", modelData.command)
                                                     
-                                                    var success = processManager.runScript(processId, modelData.command, projectPath)
+                                                    var processId = name + "_" + modelData.name
+                                                    var success = processManager.runScript(processId, modelData.command, path)
                                                     if (success) {
                                                         console.log("Process started successfully:", processId)
-                                                        // Show in-app toast notification
-                                                        toast.show("Started '" + modelData.name + "' in " + projectName, Qt.rgba(0.2, 0.6, 0.3, 0.95))
-                                                        // Show native notification if available
-                                                        if (typeof platformManager !== 'undefined' && platformManager && platformManager.showNotification) {
-                                                            platformManager.showNotification(
-                                                                "Script Started",
-                                                                "Running '" + modelData.name + "' in " + projectName
-                                                            )
-                                                        }
                                                     } else {
                                                         console.log("Failed to start process:", processId)
-                                                        // Show error toast notification
-                                                        toast.show("Failed to start '" + modelData.name + "'", Qt.rgba(0.8, 0.2, 0.2, 0.95))
-                                                        // Show native notification if available
-                                                        if (typeof platformManager !== 'undefined' && platformManager && platformManager.showNotification) {
-                                                            platformManager.showNotification(
-                                                                "Failed to Start",
-                                                                "Could not start '" + modelData.name + "' in " + projectName
-                                                            )
-                                                        }
                                                     }
                                                 }
                                             }
@@ -588,9 +461,8 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     
-                    // Pass the global workspaceViewModel context property
-                    // Connect to the workspaceViewModel from context property
-                    workspaceViewModel: workspaceViewModel
+                    // This property will be set from C++ (main.cpp)
+                    // workspaceViewModel: workspaceViewModelInstance
                 }
                 
                 // Statistics panel
