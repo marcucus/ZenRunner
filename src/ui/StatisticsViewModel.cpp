@@ -142,7 +142,7 @@ QVariantMap StatisticsViewModel::getProcessStats(const QString& processId) const
     return result;
 }
 
-void StatisticsViewModel::onStatsUpdated(const QString& processId, ZenRunner::Core::ProcessResourceStats stats) {
+void StatisticsViewModel::onStatsUpdated(const QString& processId, ZenRunner::Core::ProcessResourceStats /*stats*/) {
     updateProcessStats(processId);
     emit statisticsChanged();
 }

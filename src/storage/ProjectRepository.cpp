@@ -178,7 +178,7 @@ bool ProjectRepository::isPathRegistered(const QString& projectPath) const {
 
 bool ProjectRepository::updateProjectMetadata(
     const QString& projectId,
-    const QString& name,
+    const QString& /*name*/,
     const QStringList& pinnedScripts)
 {
     auto project = loadProject(projectId);
