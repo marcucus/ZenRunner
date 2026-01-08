@@ -21,7 +21,8 @@ class ProjectManager : public QAbstractListModel {
 
 public:
     enum ProjectRoles {
-        NameRole = Qt::UserRole + 1,
+        IdRole = Qt::UserRole + 1,
+        NameRole,
         PathRole,
         ScriptCountRole,
         ScriptsRole

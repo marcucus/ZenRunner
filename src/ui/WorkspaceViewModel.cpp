@@ -8,6 +8,7 @@ namespace ZenRunner::UI {
 WorkspaceViewModel::WorkspaceViewModel(QObject* parent)
     : QAbstractListModel(parent)
     , repository_(nullptr)
+    , projectRepository_(nullptr)
     , processManager_(nullptr)
 {
 }
@@ -18,6 +19,10 @@ void WorkspaceViewModel::setRepository(Storage::IWorkspaceRepository* repository
 
 void WorkspaceViewModel::setProcessManager(Core::IProcessManager* manager) {
     processManager_ = manager;
+}
+
+void WorkspaceViewModel::setProjectRepository(Storage::IProjectRepository* repository) {
+    projectRepository_ = repository;
 }
 
 int WorkspaceViewModel::rowCount(const QModelIndex& parent) const {
@@ -204,16 +209,34 @@ bool WorkspaceViewModel::addProjectToWorkspace(const QString& workspaceId, const
         return false;
     }
 
+    if (!projectRepository_) [[unlikely]] {
+        qWarning() << "WorkspaceViewModel: No project repository set";
+        emit errorOccurred("No project repository configured");
+        return false;
+    }
+
     auto workspace = findWorkspace(workspaceId);
     if (!workspace) [[unlikely]] {
         emit errorOccurred("Workspace not found");
         return false;
     }
 
-    // Note: We need to load the actual project from project repository
-    // For now, this is a simplified implementation
-    // TODO: Integrate with IProjectRepository
+    // Load the project from the project repository
+    auto project = projectRepository_->loadProject(projectId);
+    if (!project) [[unlikely]] {
+        qWarning() << "WorkspaceViewModel: Failed to load project" << projectId;
+        emit errorOccurred(QString("Failed to load project: %1").arg(projectId));
+        return false;
+    }
 
+    // Add project to workspace
+    if (!workspace->addProject(project)) [[unlikely]] {
+        qWarning() << "WorkspaceViewModel: Failed to add project to workspace";
+        emit errorOccurred("Failed to add project to workspace");
+        return false;
+    }
+
+    // Save the updated workspace
     if (!repository_->saveWorkspace(*workspace)) [[unlikely]] {
         emit errorOccurred("Failed to save workspace");
         return false;
