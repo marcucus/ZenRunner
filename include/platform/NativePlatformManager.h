@@ -8,10 +8,7 @@
 // Forward declarations
 class QMenu;
 class QAction;
-
-namespace ZenRunner {
-    class NativeEffects;
-}
+class NativeEffects;
 
 namespace ZenRunner::Platform {
     class SystemTray;

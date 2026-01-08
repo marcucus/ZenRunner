@@ -9,6 +9,7 @@
 #include "storage/ProjectRepository.h"
 #include "storage/ApplicationStateManager.h"
 #include "platform/NativePlatformManager.h"
+#include "platform/ISystemTray.hpp"
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -52,7 +53,8 @@ int main(int argc, char *argv[]) {
     
     // Initialize state persistence system
     qDebug() << "\n[Initializing State Persistence System]";
-    auto settingsManager = Storage::createSettingsManager();
+    auto settingsManagerUnique = Storage::createSettingsManager();
+    auto settingsManager = std::shared_ptr<Storage::ISettingsManager>(std::move(settingsManagerUnique));
     auto workspaceRepo = std::make_shared<Storage::WorkspaceRepository>();
     auto projectRepo = std::make_shared<Storage::ProjectRepository>();
     
@@ -111,7 +113,6 @@ int main(int argc, char *argv[]) {
     
     // Expose managers to QML
     engine.rootContext()->setContextProperty("projectManager", &projectManager);
-    engine.rootContext()->setContextProperty("stateManager", stateManager.get());
     engine.rootContext()->setContextProperty("processManager", &processManager);
     engine.rootContext()->setContextProperty("platformManager", &platformManager);
     

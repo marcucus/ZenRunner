@@ -27,6 +27,7 @@ find_package(Qt6 REQUIRED COMPONENTS
 
 # Include directories - Public API interfaces
 include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/src)
 
 # Compiler warnings
 if(MSVC)
@@ -158,10 +159,12 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 add_executable(test_circular_buffer
     src/test_circular_buffer.cpp
     src/core/LogBuffer.cpp
+    src/core/AnsiParser.cpp
 )
 
 target_link_libraries(test_circular_buffer PRIVATE
     Qt6::Core
+    Qt6::Gui
 )
 
 set_target_properties(test_circular_buffer PROPERTIES

@@ -90,7 +90,7 @@ void testBasicSaveLoad() {
         return;
     }
     
-    auto project = projectResult.unwrap();
+    auto project = projectResult.value();
     QString projectId = project.id();
     
     // Create repository with temp storage
@@ -137,7 +137,7 @@ void testPinnedScriptsPersistence() {
         return;
     }
     
-    auto project = projectResult.unwrap();
+    auto project = projectResult.value();
     QString projectId = project.id();
     
     // Pin some scripts
@@ -200,7 +200,7 @@ void testMultipleProjects() {
             return;
         }
         
-        auto project = projectResult.unwrap();
+        auto project = projectResult.value();
         projectIds.push_back(project.id());
         
         if (!repo.saveProject(project)) {
@@ -236,7 +236,7 @@ void testProjectDeletion() {
         return;
     }
     
-    auto project = projectResult.unwrap();
+    auto project = projectResult.value();
     QString projectId = project.id();
     
     QString storagePath = QDir(tempDir.path()).filePath("storage");
@@ -322,7 +322,7 @@ void testPathBasedLookup() {
         return;
     }
     
-    auto project = projectResult.unwrap();
+    auto project = projectResult.value();
     
     QString storagePath = QDir(tempDir.path()).filePath("storage");
     ProjectRepository repo(storagePath);

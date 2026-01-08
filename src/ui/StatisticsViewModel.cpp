@@ -1,5 +1,7 @@
 #include "ui/StatisticsViewModel.h"
 #include <QDebug>
+#include <QDateTime>
+#include <chrono>
 
 namespace ZenRunner::UI {
 
@@ -54,7 +56,10 @@ QVariant StatisticsViewModel::data(const QModelIndex& index, int role) const {
         QVariantList history;
         for (const auto& point : stats.summary->recentHistory) {
             QVariantMap dataPoint;
-            dataPoint["timestamp"] = QDateTime::fromStdTimePoint(point.timestamp).toMSecsSinceEpoch();
+            // Convert std::chrono::time_point to milliseconds since epoch
+            auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                point.timestamp.time_since_epoch()).count();
+            dataPoint["timestamp"] = static_cast<qint64>(ms);
             dataPoint["cpu"] = point.cpuPercent;
             dataPoint["memory"] = point.memoryMB;
             history.append(dataPoint);

@@ -57,7 +57,8 @@ void testInitialization() {
     }
     
     // Create components
-    auto settings = createSettingsManager("TestOrg", "TestApp");
+    auto settingsUnique = createSettingsManager("TestOrg", "TestApp");
+    auto settings = std::shared_ptr<ISettingsManager>(std::move(settingsUnique));
     auto workspaceRepo = std::make_shared<WorkspaceRepository>(
         QDir(tempDir.path()).filePath("workspaces"));
     auto projectRepo = std::make_shared<ProjectRepository>(
@@ -89,7 +90,8 @@ void testRecentProjects() {
         return;
     }
     
-    auto settings = createSettingsManager("TestOrg", "TestApp");
+    auto settingsUnique = createSettingsManager("TestOrg", "TestApp");
+    auto settings = std::shared_ptr<ISettingsManager>(std::move(settingsUnique));
     auto workspaceRepo = std::make_shared<WorkspaceRepository>(
         QDir(tempDir.path()).filePath("workspaces"));
     auto projectRepo = std::make_shared<ProjectRepository>(
@@ -133,7 +135,8 @@ void testWindowGeometry() {
         return;
     }
     
-    auto settings = createSettingsManager("TestOrg", "TestApp");
+    auto settingsUnique = createSettingsManager("TestOrg", "TestApp");
+    auto settings = std::shared_ptr<ISettingsManager>(std::move(settingsUnique));
     auto workspaceRepo = std::make_shared<WorkspaceRepository>(
         QDir(tempDir.path()).filePath("workspaces"));
     auto projectRepo = std::make_shared<ProjectRepository>(
@@ -176,7 +179,8 @@ void testFirstRun() {
         return;
     }
     
-    auto settings = createSettingsManager("TestOrg", "TestApp");
+    auto settingsUnique = createSettingsManager("TestOrg", "TestApp");
+    auto settings = std::shared_ptr<ISettingsManager>(std::move(settingsUnique));
     auto workspaceRepo = std::make_shared<WorkspaceRepository>(
         QDir(tempDir.path()).filePath("workspaces"));
     auto projectRepo = std::make_shared<ProjectRepository>(
@@ -219,7 +223,8 @@ void testAutoSaveConfig() {
         return;
     }
     
-    auto settings = createSettingsManager("TestOrg", "TestApp");
+    auto settingsUnique = createSettingsManager("TestOrg", "TestApp");
+    auto settings = std::shared_ptr<ISettingsManager>(std::move(settingsUnique));
     auto workspaceRepo = std::make_shared<WorkspaceRepository>(
         QDir(tempDir.path()).filePath("workspaces"));
     auto projectRepo = std::make_shared<ProjectRepository>(
@@ -267,7 +272,8 @@ void testLastWorkspace() {
         return;
     }
     
-    auto settings = createSettingsManager("TestOrg", "TestApp");
+    auto settingsUnique = createSettingsManager("TestOrg", "TestApp");
+    auto settings = std::shared_ptr<ISettingsManager>(std::move(settingsUnique));
     auto workspaceRepo = std::make_shared<WorkspaceRepository>(
         QDir(tempDir.path()).filePath("workspaces"));
     auto projectRepo = std::make_shared<ProjectRepository>(
@@ -311,7 +317,8 @@ void testSaveAndRestore() {
     
     // First session
     {
-        auto settings = createSettingsManager("TestOrg", "TestApp");
+        auto settingsUnique = createSettingsManager("TestOrg", "TestApp");
+        auto settings = std::shared_ptr<ISettingsManager>(std::move(settingsUnique));
         auto workspaceRepo = std::make_shared<WorkspaceRepository>(workspacesPath);
         auto projectRepo = std::make_shared<ProjectRepository>(projectsPath);
         
@@ -331,7 +338,8 @@ void testSaveAndRestore() {
     
     // Second session - restore state
     {
-        auto settings = createSettingsManager("TestOrg", "TestApp");
+        auto settingsUnique = createSettingsManager("TestOrg", "TestApp");
+        auto settings = std::shared_ptr<ISettingsManager>(std::move(settingsUnique));
         auto workspaceRepo = std::make_shared<WorkspaceRepository>(workspacesPath);
         auto projectRepo = std::make_shared<ProjectRepository>(projectsPath);
         

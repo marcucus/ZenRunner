@@ -186,8 +186,6 @@ bool ProjectRepository::updateProjectMetadata(
         return false;
     }
     
-    project->setName(name);
-    
     // Update pinned scripts - get current pinned scripts
     const auto currentPinned = project->getPinnedScripts();
     
@@ -288,7 +286,7 @@ std::shared_ptr<Project> ProjectRepository::projectFromJson(
         return nullptr;
     }
     
-    auto project = std::make_shared<Project>(projectResult.unwrap());
+    auto project = std::make_shared<Project>(projectResult.value());
     
     // Restore pinned scripts from saved state
     const QJsonArray pinnedArray = json["pinnedScripts"].toArray();

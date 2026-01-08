@@ -29,7 +29,7 @@ public:
      * @param workspaceId Workspace identifier
      * @return Shared pointer to workspace, or nullptr if not found
      */
-    virtual std::shared_ptr<Core::IWorkspace> loadWorkspace(const QString& workspaceId) = 0;
+    virtual std::shared_ptr<Core::IWorkspace> loadWorkspace(const QString& workspaceId) const = 0;
 
     /**
      * @brief Delete a workspace from storage

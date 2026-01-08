@@ -66,6 +66,7 @@ class IProcessResourceMonitor : public QObject {
     Q_OBJECT
     
 public:
+    explicit IProcessResourceMonitor(QObject* parent = nullptr) : QObject(parent) {}
     virtual ~IProcessResourceMonitor() = default;
     
     /**
