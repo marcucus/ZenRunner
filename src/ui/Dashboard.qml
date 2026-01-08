@@ -299,6 +299,9 @@ Item {
                         text: "+ Import Project"
                         accentColor: "#4a90e2"
                         width: 140
+                        onClicked: {
+                            folderDialog.open()
+                        }
                     }
                     
                     GlassButton {
@@ -586,6 +589,7 @@ Item {
                     Layout.fillHeight: true
                     
                     // Pass the global workspaceViewModel context property
+                    // Connect to the workspaceViewModel from context property
                     workspaceViewModel: workspaceViewModel
                 }
                 
