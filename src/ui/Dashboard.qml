@@ -8,6 +8,12 @@ import "./components"
 Item {
     id: dashboard
     
+    // Toast notification for in-app feedback
+    Toast {
+        id: toast
+        z: 1000
+    }
+    
     // Listen to projectManager signals
     Connections {
         target: projectManager
@@ -22,6 +28,30 @@ Item {
         
         function onProjectCountChanged() {
             console.log("Dashboard: Project count changed to:", projectManager.projectCount)
+        }
+    }
+    
+    // Listen to processManager signals for global notifications
+    Connections {
+        target: processManager
+        
+        function onProcessFinished(id, exitCode) {
+            console.log("Dashboard: Process finished:", id, "exit code:", exitCode)
+            if (exitCode === 0) {
+                toast.show("Process '" + id + "' completed successfully", Qt.rgba(0.2, 0.6, 0.3, 0.95))
+            } else {
+                toast.show("Process '" + id + "' exited with code " + exitCode, Qt.rgba(0.8, 0.6, 0.2, 0.95))
+            }
+        }
+        
+        function onProcessCrashed(id, exitCode) {
+            console.log("Dashboard: Process crashed:", id, "exit code:", exitCode)
+            toast.show("Process '" + id + "' crashed!", Qt.rgba(0.8, 0.2, 0.2, 0.95))
+        }
+        
+        function onProcessError(id, error) {
+            console.log("Dashboard: Process error:", id, error)
+            toast.show("Error in '" + id + "': " + error, Qt.rgba(0.8, 0.2, 0.2, 0.95))
         }
     }
     
@@ -380,11 +410,26 @@ Item {
                                         
                                         GlassButton {
                                             required property var modelData
+                                            required property int index
                                             
-                                            text: modelData && modelData.name ? modelData.name : "Unknown"
+                                            // Access parent delegate's name and path properties
+                                            property string projectName: name
+                                            property string projectPath: path
+                                            property string processId: (projectName || "unknown") + "_" + (modelData && modelData.name ? modelData.name : "")
+                                            property bool isRunning: false
+                                            
+                                            // ProcessState enum values for clarity
+                                            readonly property int processStateRunning: 2
+                                            
+                                            text: {
+                                                if (!modelData || !modelData.name) return "Unknown"
+                                                if (isRunning) return modelData.name + " ●"
+                                                return modelData.name
+                                            }
                                             implicitHeight: 32
                                             width: Math.max(80, implicitWidth)
                                             accentColor: {
+                                                if (isRunning) return "#4ade80"
                                                 if (!modelData || !modelData.name) return "#4a90e2"
                                                 const scriptName = modelData.name.toLowerCase()
                                                 if (scriptName === "start" || scriptName === "dev") return "#4ade80"
@@ -394,17 +439,46 @@ Item {
                                                 return "#4a90e2"
                                             }
                                             
+                                            // Listen for process state changes
+                                            Connections {
+                                                target: processManager
+                                                
+                                                function onProcessStateChanged(id, newState) {
+                                                    if (id === processId) {
+                                                        // ProcessState enum: NotStarted=0, Starting=1, Running=2, Paused=3, Stopping=4, Stopped=5, Finished=6, Crashed=7
+                                                        isRunning = (newState === processStateRunning)
+                                                    }
+                                                }
+                                            }
+                                            
                                             onClicked: {
                                                 if (modelData && modelData.name && modelData.command) {
-                                                    console.log("Running script:", modelData.name, "in project:", name)
-                                                    console.log("Path:", path, "Command:", modelData.command)
+                                                    console.log("Running script:", modelData.name, "in project:", projectName)
+                                                    console.log("Path:", projectPath, "Command:", modelData.command)
                                                     
-                                                    var processId = name + "_" + modelData.name
-                                                    var success = processManager.runScript(processId, modelData.command, path)
+                                                    var success = processManager.runScript(processId, modelData.command, projectPath)
                                                     if (success) {
                                                         console.log("Process started successfully:", processId)
+                                                        // Show in-app toast notification
+                                                        toast.show("Started '" + modelData.name + "' in " + projectName, Qt.rgba(0.2, 0.6, 0.3, 0.95))
+                                                        // Show native notification if available
+                                                        if (typeof platformManager !== 'undefined' && platformManager && platformManager.showNotification) {
+                                                            platformManager.showNotification(
+                                                                "Script Started",
+                                                                "Running '" + modelData.name + "' in " + projectName
+                                                            )
+                                                        }
                                                     } else {
                                                         console.log("Failed to start process:", processId)
+                                                        // Show error toast notification
+                                                        toast.show("Failed to start '" + modelData.name + "'", Qt.rgba(0.8, 0.2, 0.2, 0.95))
+                                                        // Show native notification if available
+                                                        if (typeof platformManager !== 'undefined' && platformManager && platformManager.showNotification) {
+                                                            platformManager.showNotification(
+                                                                "Failed to Start",
+                                                                "Could not start '" + modelData.name + "' in " + projectName
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             }
