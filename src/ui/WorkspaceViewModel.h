@@ -133,6 +133,13 @@ public slots:
      */
     int getWorkspaceIndex(const QString& workspaceId) const;
 
+    /**
+     * @brief Get projects in a workspace by index
+     * @param index Workspace index in the model
+     * @return QVariantList of project information
+     */
+    Q_INVOKABLE QVariantList getWorkspaceProjects(int index) const;
+
 signals:
     /**
      * @brief Emitted when workspace count changes

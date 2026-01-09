@@ -119,6 +119,9 @@ int main(int argc, char *argv[]) {
     workspaceViewModel.loadWorkspaces();
     qDebug() << "Loaded" << workspaceViewModel.count() << "workspaces";
     
+    // TODO: Create StatisticsViewModel when resource monitoring is integrated
+    // For now, StatisticsPanel will work without statisticsViewModel
+    
     // Create QML engine
     QQmlApplicationEngine engine;
     

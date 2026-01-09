@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
+import QtQuick.Layouts
 
 ApplicationWindow {
     id: mainWindow
@@ -23,6 +24,11 @@ ApplicationWindow {
     // Performance optimizations for 60 FPS target
     // GPU acceleration is configured globally in main.cpp via RHI
     // This QML file focuses on efficient structure and animations
+    
+    // View state management
+    property bool showDetailView: false
+    property var selectedItem: null
+    property bool isWorkspace: false
     
     // Main container with glassmorphism effect
     Item {
@@ -86,11 +92,40 @@ ApplicationWindow {
             }
         }
         
-        // Main content area with Dashboard
-        Dashboard {
-            id: dashboard
+        // Main content area with new layout
+        StackView {
+            id: stackView
             anchors.fill: parent
             anchors.margins: 20
+            
+            initialItem: mainView
+            
+            // Main view - unified list + statistics
+            Component {
+                id: mainView
+                
+                UnifiedListView {
+                    onItemSelected: (item, workspace) => {
+                        mainWindow.selectedItem = item
+                        mainWindow.isWorkspace = workspace
+                        stackView.push(detailView)
+                    }
+                }
+            }
+            
+            // Detail view - project/workspace details with terminals
+            Component {
+                id: detailView
+                
+                DetailView {
+                    selectedItem: mainWindow.selectedItem
+                    isWorkspace: mainWindow.isWorkspace
+                    
+                    onBackClicked: {
+                        stackView.pop()
+                    }
+                }
+            }
         }
     }
 }

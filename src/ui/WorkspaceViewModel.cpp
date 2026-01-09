@@ -377,4 +377,48 @@ QString WorkspaceViewModel::generateWorkspaceColor(const QString& name) const {
     return colors[colorIndex];
 }
 
+QVariantList WorkspaceViewModel::getWorkspaceProjects(int index) const {
+    QVariantList result;
+    
+    if (index < 0 || index >= static_cast<int>(workspaces_.size())) [[unlikely]] {
+        qWarning() << "WorkspaceViewModel: Invalid workspace index:" << index;
+        return result;
+    }
+    
+    const auto& workspace = workspaces_[index];
+    if (!workspace) [[unlikely]] {
+        qWarning() << "WorkspaceViewModel: Null workspace at index:" << index;
+        return result;
+    }
+    
+    const auto& projects = workspace->getProjects();
+    
+    // For each project, retrieve project information
+    for (const auto& project : projects) {
+        if (!project) [[unlikely]] {
+            continue;
+        }
+        
+        QVariantMap projectInfo;
+        projectInfo["id"] = project->getId();
+        projectInfo["name"] = project->getName();
+        projectInfo["path"] = project->getPath();
+        
+        // Get scripts from project
+        QVariantList scripts;
+        const auto& projectScripts = project->getScripts();
+        for (const auto& script : projectScripts) {
+            QVariantMap scriptInfo;
+            scriptInfo["name"] = script.name;
+            scriptInfo["command"] = script.command;
+            scripts.append(scriptInfo);
+        }
+        projectInfo["scripts"] = scripts;
+        
+        result.append(projectInfo);
+    }
+    
+    return result;
+}
+
 } // namespace ZenRunner::UI

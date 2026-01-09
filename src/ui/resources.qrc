@@ -10,6 +10,12 @@
         <file>WorkspaceDialog.qml</file>
         <file>Statistics.qml</file>
         
+        <!-- New unified interface -->
+        <file>UnifiedListView.qml</file>
+        <file>StatisticsPanel.qml</file>
+        <file>DetailView.qml</file>
+        <file>MultiTerminalView.qml</file>
+        
         <!-- Reusable components -->
         <file>components/GlassCard.qml</file>
         <file>components/GlassButton.qml</file>
