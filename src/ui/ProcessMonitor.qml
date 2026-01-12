@@ -9,6 +9,16 @@ Item {
     
     signal backClicked()
     
+    // Process state constants (matching ProcessState enum in C++)
+    readonly property int stateNotStarted: 0
+    readonly property int stateStarting: 1
+    readonly property int stateRunning: 2
+    readonly property int statePaused: 3
+    readonly property int stateStopping: 4
+    readonly property int stateStopped: 5
+    readonly property int stateCrashed: 6
+    readonly property int stateFinished: 7
+    
     // Timer to auto-refresh process list
     Timer {
         id: refreshTimer
@@ -55,19 +65,19 @@ Item {
     
     function getStateColor(state) {
         switch(state) {
-            case 2: // Running
+            case root.stateRunning: // Running
                 return "#4ade80" // Green
-            case 1: // Starting
+            case root.stateStarting: // Starting
                 return "#60a5fa" // Blue
-            case 3: // Paused
+            case root.statePaused: // Paused
                 return "#fbbf24" // Yellow
-            case 4: // Stopping
+            case root.stateStopping: // Stopping
                 return "#fb923c" // Orange
-            case 5: // Stopped
+            case root.stateStopped: // Stopped
                 return "#94a3b8" // Gray
-            case 6: // Crashed
+            case root.stateCrashed: // Crashed
                 return "#f87171" // Red
-            case 7: // Finished
+            case root.stateFinished: // Finished
                 return "#a78bfa" // Purple
             default: // NotStarted
                 return "#71717a" // Gray
@@ -346,21 +356,21 @@ Item {
                                         width: 80
                                         height: 32
                                         radius: 6
-                                        color: model.state === 2 ? Qt.rgba(0.8, 0.6, 0.2, 0.2) : Qt.rgba(0.3, 0.3, 0.3, 0.2)
+                                        color: model.state === root.stateRunning ? Qt.rgba(0.8, 0.6, 0.2, 0.2) : Qt.rgba(0.3, 0.3, 0.3, 0.2)
                                         border.width: 1
-                                        border.color: model.state === 2 ? Qt.rgba(0.8, 0.6, 0.2, 0.4) : Qt.rgba(0.3, 0.3, 0.3, 0.4)
+                                        border.color: model.state === root.stateRunning ? Qt.rgba(0.8, 0.6, 0.2, 0.4) : Qt.rgba(0.3, 0.3, 0.3, 0.4)
                                         
                                         Text {
                                             anchors.centerIn: parent
                                             text: "Stop"
                                             font.pixelSize: 11
                                             font.weight: Font.Medium
-                                            color: model.state === 2 ? "#fbbf24" : "#666666"
+                                            color: model.state === root.stateRunning ? "#fbbf24" : "#666666"
                                         }
                                         
                                         MouseArea {
                                             anchors.fill: parent
-                                            enabled: model.state === 2 // Only enabled if running
+                                            enabled: model.state === root.stateRunning // Only enabled if running
                                             cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                                             
                                             onClicked: {
@@ -377,21 +387,21 @@ Item {
                                         width: 80
                                         height: 32
                                         radius: 6
-                                        color: model.state === 2 ? Qt.rgba(0.9, 0.2, 0.2, 0.2) : Qt.rgba(0.3, 0.3, 0.3, 0.2)
+                                        color: model.state === root.stateRunning ? Qt.rgba(0.9, 0.2, 0.2, 0.2) : Qt.rgba(0.3, 0.3, 0.3, 0.2)
                                         border.width: 1
-                                        border.color: model.state === 2 ? Qt.rgba(0.9, 0.2, 0.2, 0.4) : Qt.rgba(0.3, 0.3, 0.3, 0.4)
+                                        border.color: model.state === root.stateRunning ? Qt.rgba(0.9, 0.2, 0.2, 0.4) : Qt.rgba(0.3, 0.3, 0.3, 0.4)
                                         
                                         Text {
                                             anchors.centerIn: parent
                                             text: "Kill"
                                             font.pixelSize: 11
                                             font.weight: Font.Medium
-                                            color: model.state === 2 ? "#ef4444" : "#666666"
+                                            color: model.state === root.stateRunning ? "#ef4444" : "#666666"
                                         }
                                         
                                         MouseArea {
                                             anchors.fill: parent
-                                            enabled: model.state === 2 // Only enabled if running
+                                            enabled: model.state === root.stateRunning // Only enabled if running
                                             cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                                             
                                             onClicked: {
@@ -501,7 +511,7 @@ Item {
                         if (processManager) {
                             var processes = processManager.getAllProcessesInfo()
                             for (var i = 0; i < processes.length; i++) {
-                                if (processes[i].state === 2) { // Running
+                                if (processes[i].state === root.stateRunning) { // Running
                                     processManager.killProcess(processes[i].id)
                                 }
                             }
