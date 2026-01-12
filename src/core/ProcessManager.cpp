@@ -638,4 +638,77 @@ void ProcessManager::connectProcessSignals(const QString& id, AsyncProcess* proc
             }, Qt::DirectConnection);
 }
 
+QVariantList ProcessManager::getAllProcessesInfo() const {
+    std::lock_guard lock(processesMutex_);
+    
+    QVariantList result;
+    for (const auto& [id, process] : processes_) {
+        QVariantMap info;
+        info["id"] = id;
+        info["state"] = static_cast<int>(process->state());
+        info["stateString"] = processStateToString(process->state());
+        info["pid"] = process->processId();
+        info["command"] = process->config().command;
+        info["workingDir"] = process->config().workingDirectory;
+        info["exitCode"] = process->exitCode();
+        
+        result.append(info);
+    }
+    
+    return result;
+}
+
+QVariantMap ProcessManager::getProcessInfo(const QString& id) const {
+    std::lock_guard lock(processesMutex_);
+    
+    auto it = processes_.find(id);
+    if (it == processes_.end()) {
+        return QVariantMap();
+    }
+    
+    const auto& process = it->second;
+    QVariantMap info;
+    info["id"] = id;
+    info["state"] = static_cast<int>(process->state());
+    info["stateString"] = processStateToString(process->state());
+    info["pid"] = process->processId();
+    info["command"] = process->config().command;
+    info["workingDir"] = process->config().workingDirectory;
+    info["exitCode"] = process->exitCode();
+    
+    return info;
+}
+
+void ProcessManager::killProcess(const QString& id) {
+    std::lock_guard lock(processesMutex_);
+    
+    auto it = processes_.find(id);
+    if (it != processes_.end()) {
+        // Force kill immediately
+        it->second->forceKillImmediate();
+    }
+}
+
+void ProcessManager::stopAllProcesses(int timeoutMs) {
+    stopAll(timeoutMs);
+}
+
+int ProcessManager::getRunningCount() const {
+    return runningCount();
+}
+
+QString ProcessManager::processStateToString(ProcessState state) const {
+    switch (state) {
+        case ProcessState::NotStarted: return "Not Started";
+        case ProcessState::Starting: return "Starting";
+        case ProcessState::Running: return "Running";
+        case ProcessState::Paused: return "Paused";
+        case ProcessState::Stopping: return "Stopping";
+        case ProcessState::Stopped: return "Stopped";
+        case ProcessState::Crashed: return "Crashed";
+        case ProcessState::Finished: return "Finished";
+        default: return "Unknown";
+    }
+}
+
 } // namespace ZenRunner

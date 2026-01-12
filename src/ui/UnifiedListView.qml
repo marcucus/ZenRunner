@@ -9,6 +9,7 @@ Item {
     id: root
     
     signal itemSelected(var item, bool isWorkspace)
+    signal processMonitorRequested()
     
     // Workspace creation dialog
     WorkspaceDialog {
@@ -302,6 +303,14 @@ Item {
             }
             
             Item { Layout.fillWidth: true }
+            
+            // Process Monitor button
+            GlassButton {
+                text: "⚙️ Processes"
+                accentColor: "#ef4444"
+                width: 140
+                onClicked: root.processMonitorRequested()
+            }
             
             // Bouton Scan Folder
             GlassButton {
