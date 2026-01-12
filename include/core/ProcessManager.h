@@ -151,6 +151,17 @@ private:
     void setState(ProcessState newState);
     void addLogEntry(const QString& text, LogLevel level, bool isStderr);
     QString processErrorToString(QProcess::ProcessError error) const;
+    
+    /**
+     * @brief Process output in chunks with smart batching
+     * 
+     * Reads process output in 64KB chunks and yields to the event loop
+     * every 4 chunks to maintain UI responsiveness without excessive
+     * context switching.
+     * 
+     * @param isStderr Whether to process stderr (true) or stdout (false)
+     */
+    void processChunkedOutput(bool isStderr);
 
     ProcessConfig config_;
     std::unique_ptr<QProcess> process_;

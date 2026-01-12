@@ -65,9 +65,11 @@ Item {
         // Limit buffer to maxBufferLines for better performance
         // This is more aggressive than the 5000 line circular buffer to ensure UI responsiveness
         if (logListModel.count >= maxBufferLines) {
-            // Remove oldest lines in batch to reduce frequent operations
-            for (var i = 0; i < batchRemovalCount; i++) {
-                logListModel.remove(0)
+            // Remove oldest lines in batch by removing from end to start (more efficient)
+            // This avoids index shifting on each removal
+            var removeCount = Math.min(batchRemovalCount, logListModel.count)
+            for (var i = removeCount - 1; i >= 0; i--) {
+                logListModel.remove(i)
             }
         }
         
@@ -78,12 +80,19 @@ Item {
             "isError": isError
         })
         
-        // Auto-scroll to bottom
-        Qt.callLater(function() {
-            if (logListView.count > 0) {
-                logListView.positionViewAtEnd()
-            }
-        })
+        // Auto-scroll only if user is near bottom (within 5 items)
+        // This prevents forced scrolling when user is reviewing earlier logs
+        var nearBottom = logListView.count > 0 && 
+                         (logListView.currentIndex < 0 || 
+                          logListView.count - logListView.currentIndex <= 5)
+        
+        if (nearBottom) {
+            Qt.callLater(function() {
+                if (logListView.count > 0) {
+                    logListView.positionViewAtEnd()
+                }
+            })
+        }
     }
     
     // Placeholder when no logs
@@ -151,8 +160,9 @@ Item {
                     renderType: Text.NativeRendering
                     elide: Text.ElideNone
                     
-                    // Calculate available width based on actual component sizes
-                    width: Math.min(implicitWidth, logListView.width - root.timestampWidth - root.indicatorWidth)
+                    // Calculate available width accounting for timestamp, indicator, and spacing
+                    // Row spacing is 8px, so we have: timestamp + 8 + indicator + 8 + text
+                    width: Math.min(implicitWidth, logListView.width - root.timestampWidth - root.indicatorWidth - 16)
                 }
             }
         }
