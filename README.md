@@ -145,12 +145,19 @@ See [Workspace Guide](docs/WORKSPACE_GUIDE.md) for detailed documentation.
 | RAM (Active) | < 30 MB | Circular buffers, efficient data structures |
 | UI Framerate | 60 FPS | GPU-accelerated Qt Quick Scene Graph with RHI |
 | Response Time | < 10 ms | Asynchronous signal/slot architecture |
+| Terminal Output | No freezing | ListView virtualization, chunk-based reading |
 
 **🎯 60 FPS Optimization**: ZenRunner implements comprehensive GPU acceleration using Qt's Rendering Hardware Interface (RHI), ensuring consistent 60 FPS performance with:
 - Vulkan on Linux, Metal on macOS, Direct3D on Windows
 - Threaded render loop for parallel CPU/GPU processing
 - Optimized QML layer compositing and caching
 - See [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for details
+
+**⚡ Terminal Optimization**: The terminal view uses ListView virtualization instead of TextEdit to handle massive log output without freezing:
+- 64KB chunk-based reading prevents UI blocking
+- Only visible log lines are rendered (virtualization)
+- Aggressive 2000-line UI buffer with efficient pruning
+- See [PERFORMANCE_OPTIMIZATION_TERMINAL.md](PERFORMANCE_OPTIMIZATION_TERMINAL.md) for details
 
 ## Design Principles
 
@@ -271,6 +278,7 @@ For complete packaging instructions and security considerations, see [docs/PACKA
 - [Workspace Guide](docs/WORKSPACE_GUIDE.md) - Multi-project workspace management
 - [Circular Buffer Implementation](CIRCULAR_BUFFER_IMPLEMENTATION.md) - Memory-efficient log storage
 - [Log Throttling System](LOG_THROTTLING_IMPLEMENTATION.md) - UI protection against log floods
+- [Terminal Performance Optimization](PERFORMANCE_OPTIMIZATION_TERMINAL.md) - ListView virtualization and chunk-based reading
 - [Native Integration](docs/NATIVE_INTEGRATION.md) - OS-specific features and APIs
 - [Performance Guide](docs/PERFORMANCE.md) - 60 FPS optimization details
 
