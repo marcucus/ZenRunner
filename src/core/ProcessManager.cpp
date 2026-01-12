@@ -7,6 +7,9 @@
 #ifdef Q_OS_UNIX
 #include <signal.h>
 #include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
+#include <cstring>
 #endif
 
 namespace ZenRunner {
@@ -44,6 +47,22 @@ AsyncProcess::AsyncProcess(ProcessConfig config, QObject* parent)
         process_->setProcessChannelMode(QProcess::ForwardedChannels);
     }
     
+#ifdef Q_OS_UNIX
+    // Create a new process group on Unix systems using setChildProcessModifier
+    // This allows us to kill all child processes when stopping
+    // setpgid(0, 0) creates a new process group where the calling process becomes the group leader
+    process_->setChildProcessModifier([](){ 
+        // Note: This runs in the child process after fork() but before exec()
+        // We cannot use Qt logging here, only basic system calls
+        if (::setpgid(0, 0) == -1) {
+            // If setpgid fails, write to stderr (the process will still start)
+            // Common reasons for failure: process already in another group, permissions
+            const char* msg = "Warning: Failed to create new process group\n";
+            ::write(STDERR_FILENO, msg, ::strlen(msg));
+        }
+    });
+#endif
+    
     // Connect signals for asynchronous operation
     // Use Qt::DirectConnection for same-thread critical paths to minimize latency
     connect(process_.get(), &QProcess::readyReadStandardOutput,
@@ -71,8 +90,16 @@ AsyncProcess::~AsyncProcess() {
         // Disconnect signals to prevent callbacks during destruction
         process_->disconnect();
         
+#ifdef Q_OS_UNIX
+        // Kill the entire process group (don't log in destructor to avoid issues)
+        const qint64 pid = process_->processId();
+        if (pid > 0) {
+            ::killpg(static_cast<pid_t>(pid), SIGTERM);
+        }
+#else
         // Send termination signal - the process will be killed by OS cleanup
         process_->terminate();
+#endif
         
         // Note: We intentionally don't wait here to avoid blocking.
         // The OS will clean up the process. If immediate cleanup is needed,
@@ -117,8 +144,13 @@ void AsyncProcess::stop(int timeoutMs) {
     setState(ProcessState::Stopping);
     terminationRequested_ = true;
     
-    // Try graceful termination first
+#ifdef Q_OS_UNIX
+    // Kill the entire process group to ensure all child processes are terminated
+    killProcessGroup(SIGTERM);
+#else
+    // On Windows, use the default Qt termination
     process_->terminate();
+#endif
     
     // Start timer for forceful kill if needed
     terminationTimer_->start(timeoutMs);
@@ -157,7 +189,12 @@ void AsyncProcess::writeInput(const QString& data) {
 void AsyncProcess::forceKillImmediate() {
     // Non-blocking immediate kill - no waiting
     if (process_ && process_->state() != QProcess::NotRunning) {
+#ifdef Q_OS_UNIX
+        // Kill the entire process group immediately with SIGKILL
+        killProcessGroup(SIGKILL);
+#else
         process_->kill();
+#endif
     }
 }
 
@@ -286,7 +323,12 @@ void AsyncProcess::onTerminationTimeout() {
     if (process_ && process_->state() != QProcess::NotRunning) [[unlikely]] {
         addLogEntry("Process did not terminate gracefully, forcing kill",
                    LogLevel::Warning, true);
+#ifdef Q_OS_UNIX
+        // Kill the entire process group with SIGKILL
+        killProcessGroup(SIGKILL);
+#else
         process_->kill();
+#endif
     }
 }
 
@@ -296,6 +338,36 @@ void AsyncProcess::setState(ProcessState newState) {
         emit stateChanged(newState);
     }
 }
+
+#ifdef Q_OS_UNIX
+bool AsyncProcess::killProcessGroup(int signal) {
+    const qint64 pid = process_->processId();
+    if (pid <= 0) {
+        return false;
+    }
+    
+    // Attempt to kill the process group
+    int result = ::killpg(static_cast<pid_t>(pid), signal);
+    if (result == 0) {
+        return true;  // Success
+    }
+    
+    // If killpg failed, log the error and fall back to Qt's methods
+    const char* signalName = (signal == SIGTERM) ? "SIGTERM" : "SIGKILL";
+    addLogEntry(QString("Failed to send %1 to process group (errno: %2), falling back to Qt method")
+                   .arg(signalName).arg(errno),
+               LogLevel::Warning, true);
+    
+    // Fall back to Qt's process termination
+    if (signal == SIGTERM) {
+        process_->terminate();
+    } else {
+        process_->kill();
+    }
+    
+    return false;
+}
+#endif
 
 void AsyncProcess::addLogEntry(const QString& text, LogLevel level, bool isStderr) {
     LogEntry entry;
