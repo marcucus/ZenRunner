@@ -15,6 +15,19 @@ Item {
     // Track active processes for terminals
     property var activeProcesses: ({})
     
+    // Connections pour nettoyer les processus terminés
+    Connections {
+        target: processManager
+        
+        function onProcessFinished(id, exitCode) {
+            if (activeProcesses[id]) {
+                console.log("Process finished:", id, "- removing from active processes")
+                delete activeProcesses[id]
+                activeProcesses = Object.assign({}, activeProcesses)
+            }
+        }
+    }
+    
     // Workspace projects (si c'est un workspace)
     property var workspaceProjects: []
     property int currentProjectIndex: 0
@@ -157,36 +170,85 @@ Item {
                         ScrollView {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
+                            clip: true
+                            contentWidth: availableWidth
                             
-                            GridLayout {
+                            ColumnLayout {
                                 width: parent.width
-                                columns: 3
-                                rowSpacing: 8
-                                columnSpacing: 8
+                                spacing: 0
                                 
-                                Repeater {
-                                    model: workspaceProjects.length > 0 && workspaceProjects[currentProjectIndex] ? 
-                                        workspaceProjects[currentProjectIndex].scripts : []
-                                    
-                                    GlassButton {
-                                        required property var modelData
+                                GridLayout {
+                                    Layout.fillWidth: true
+                                    columns: 4
+                                    columnSpacing: 12
+                                    rowSpacing: 12
+                                
+                                    Repeater {
+                                        model: workspaceProjects.length > 0 && workspaceProjects[currentProjectIndex] ? 
+                                            workspaceProjects[currentProjectIndex].scripts : []
                                         
-                                        text: modelData.name || "Script"
-                                        accentColor: "#4a90e2"
-                                        Layout.fillWidth: true
-                                        Layout.minimumWidth: 150
-                                        
-                                        onClicked: {
-                                            if (workspaceProjects[currentProjectIndex] && processManager) {
-                                                const projectPath = workspaceProjects[currentProjectIndex].path
-                                                const processId = processManager.startScript(
-                                                    projectPath,
-                                                    modelData.name,
-                                                    modelData.command
-                                                )
-                                                activeProcesses[processId] = {
-                                                    projectIndex: currentProjectIndex,
-                                                    scriptName: modelData.name
+                                        delegate: GlassButton {
+                                            required property var modelData
+                                            required property int index
+                                            
+                                            property string cachedProcessId: ""
+                                            property bool cachedIsRunning: false
+                                            
+                                            text: cachedIsRunning ? "⏹ Stop" : ("▶ " + (modelData.name || "Script"))
+                                            accentColor: cachedIsRunning ? "#ef4444" : "#4a90e2"
+                                            Layout.fillWidth: true
+                                            Layout.minimumWidth: 0
+                                            Layout.preferredHeight: 50
+                                            
+                                            Component.onCompleted: {
+                                                updateState()
+                                            }
+                                            
+                                            // Watcher pour activeProcesses
+                                            Connections {
+                                                target: root
+                                                function onActiveProcessesChanged() {
+                                                    updateState()
+                                                }
+                                            }
+                                            
+                                            function updateState() {
+                                                if (workspaceProjects[currentProjectIndex]) {
+                                                    cachedProcessId = workspaceProjects[currentProjectIndex].name + "_" + modelData.name
+                                                    cachedIsRunning = activeProcesses[cachedProcessId] !== undefined
+                                                }
+                                            }
+                                            
+                                            onClicked: {
+                                                if (workspaceProjects[currentProjectIndex] && processManager) {
+                                                    const project = workspaceProjects[currentProjectIndex]
+                                                    const pid = project.name + "_" + modelData.name
+                                                    
+                                                    if (activeProcesses[pid]) {
+                                                        console.log("Stopping process:", pid)
+                                                        processManager.stopProcess(pid)
+                                                        delete activeProcesses[pid]
+                                                        // Force update
+                                                        activeProcesses = Object.assign({}, activeProcesses)
+                                                        updateState()
+                                                    } else {
+                                                        console.log("Starting process:", pid)
+                                                        const success = processManager.runScript(
+                                                            pid,
+                                                            modelData.name,
+                                                            project.path
+                                                        )
+                                                        
+                                                        if (success) {
+                                                            activeProcesses[pid] = {
+                                                                projectIndex: currentProjectIndex,
+                                                                scriptName: modelData.name
+                                                            }
+                                                            // Force update
+                                                            activeProcesses = Object.assign({}, activeProcesses)
+                                                            updateState()
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
@@ -202,34 +264,82 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     visible: !isWorkspace
+                    clip: true
+                    contentWidth: availableWidth
                     
-                    GridLayout {
+                    ColumnLayout {
                         width: parent.width
-                        columns: 3
-                        rowSpacing: 8
-                        columnSpacing: 8
+                        spacing: 0
                         
-                        Repeater {
-                            model: !isWorkspace && selectedItem && selectedItem.scripts ? selectedItem.scripts : []
-                            
-                            GlassButton {
-                                required property var modelData
+                        GridLayout {
+                            Layout.fillWidth: true
+                            columns: 4
+                            columnSpacing: 12
+                            rowSpacing: 12
+                        
+                            Repeater {
+                                model: !isWorkspace && selectedItem && selectedItem.scripts ? selectedItem.scripts : []
                                 
-                                text: modelData.name || "Script"
-                                accentColor: "#4a90e2"
-                                Layout.fillWidth: true
-                                Layout.minimumWidth: 150
-                                
-                                onClicked: {
-                                    if (selectedItem && processManager) {
-                                        const processId = processManager.startScript(
-                                            selectedItem.path,
-                                            modelData.name,
-                                            modelData.command
-                                        )
-                                        activeProcesses[processId] = {
-                                            projectIndex: 0,
-                                            scriptName: modelData.name
+                                delegate: GlassButton {
+                                    required property var modelData
+                                    required property int index
+                                    
+                                    property string cachedProcessId: ""
+                                    property bool cachedIsRunning: false
+                                    
+                                    text: cachedIsRunning ? "⏹ Stop" : ("▶ " + (modelData.name || "Script"))
+                                    accentColor: cachedIsRunning ? "#ef4444" : "#4a90e2"
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
+                                    Layout.preferredHeight: 50
+                                    
+                                    Component.onCompleted: {
+                                        updateState()
+                                    }
+                                    
+                                    Connections {
+                                        target: root
+                                        function onActiveProcessesChanged() {
+                                            updateState()
+                                        }
+                                    }
+                                    
+                                    function updateState() {
+                                        if (selectedItem) {
+                                            cachedProcessId = selectedItem.name + "_" + modelData.name
+                                            cachedIsRunning = activeProcesses[cachedProcessId] !== undefined
+                                        }
+                                    }
+                                    
+                                    onClicked: {
+                                        if (selectedItem && processManager) {
+                                            const pid = selectedItem.name + "_" + modelData.name
+                                            
+                                            if (activeProcesses[pid]) {
+                                                console.log("Stopping process:", pid)
+                                                processManager.stopProcess(pid)
+                                                delete activeProcesses[pid]
+                                                // Force update
+                                                activeProcesses = Object.assign({}, activeProcesses)
+                                                updateState()
+                                            } else {
+                                                console.log("Starting process:", pid)
+                                                const success = processManager.runScript(
+                                                    pid,
+                                                    modelData.name,
+                                                    selectedItem.path
+                                                )
+                                                
+                                                if (success) {
+                                                    activeProcesses[pid] = {
+                                                        projectIndex: 0,
+                                                        scriptName: modelData.name
+                                                    }
+                                                    // Force update
+                                                    activeProcesses = Object.assign({}, activeProcesses)
+                                                    updateState()
+                                                }
+                                            }
                                         }
                                     }
                                 }

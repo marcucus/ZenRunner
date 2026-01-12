@@ -1,6 +1,7 @@
 #pragma once
 
 #include "storage/IWorkspaceRepository.hpp"
+#include "storage/IProjectRepository.hpp"
 #include "core/Workspace.h"
 #include <QDir>
 #include <QFile>

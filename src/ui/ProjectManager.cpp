@@ -109,6 +109,47 @@ void ProjectManager::scanFolder(const QString& folderPath, int maxDepth) {
     emit scanComplete(true, QString("Found %1 projects").arg(projects_.size()));
 }
 
+void ProjectManager::addProject(const QString& folderPath) {
+    // Convert URL to local path if needed (QML FolderDialog returns file:// URLs)
+    QString localPath = folderPath;
+    if (folderPath.startsWith("file://")) {
+        localPath = QUrl(folderPath).toLocalFile();
+    }
+    
+    qDebug() << "Adding project from folder:" << localPath;
+    
+    // Load the project
+    auto result = Project::fromDirectory(localPath);
+    if (!result.isOk()) {
+        qWarning() << "Failed to load project from" << localPath << ":" << result.error();
+        emit scanComplete(false, QString("Failed to load project: %1").arg(result.error()));
+        return;
+    }
+    
+    auto project = std::move(result.value());
+    qDebug() << "Loaded project:" << project.name() 
+             << "with" << project.scripts().size() << "scripts";
+    
+    // Check if project already exists
+    for (const auto& existingProject : projects_) {
+        if (existingProject.path() == project.path()) {
+            qWarning() << "Project already exists:" << project.path();
+            emit scanComplete(false, "Project already exists");
+            return;
+        }
+    }
+    
+    // Add the project
+    const int newRow = static_cast<int>(projects_.size());
+    beginInsertRows(QModelIndex(), newRow, newRow);
+    projects_.push_back(std::move(project));
+    endInsertRows();
+    
+    emit projectCountChanged();
+    emit projectsDetected(static_cast<int>(projects_.size()));
+    emit scanComplete(true, "Project added successfully");
+}
+
 void ProjectManager::clearProjects() {
     if (projects_.empty()) {
         return;
@@ -121,11 +162,30 @@ void ProjectManager::clearProjects() {
     emit projectCountChanged();
 }
 
-const ZenRunner::Project* ProjectManager::getProject(int index) const {
+QVariantMap ProjectManager::getProject(int index) const {
+    QVariantMap result;
+    
     if (index < 0 || index >= static_cast<int>(projects_.size())) {
-        return nullptr;
+        return result;
     }
-    return &projects_[index];
+    
+    const auto& project = projects_[index];
+    result["id"] = project.id();
+    result["name"] = project.name();
+    result["path"] = project.path();
+    result["scriptCount"] = static_cast<int>(project.scripts().size());
+    
+    QVariantList scripts;
+    for (const auto& script : project.scripts()) {
+        QVariantMap scriptMap;
+        scriptMap["name"] = script.name;
+        scriptMap["command"] = script.command;
+        scriptMap["isPinned"] = script.isPinned;
+        scripts.append(scriptMap);
+    }
+    result["scripts"] = scripts;
+    
+    return result;
 }
 
 } // namespace ZenRunner::UI

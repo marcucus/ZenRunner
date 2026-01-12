@@ -47,11 +47,22 @@ public:
     Q_INVOKABLE void scanFolder(const QString& folderPath, int maxDepth = 3);
     
     /**
+     * @brief Add a single project from a folder
+     * @param folderPath Path to the project folder
+     */
+    Q_INVOKABLE void addProject(const QString& folderPath);
+    
+    /**
      * @brief Clear all detected projects
      */
     Q_INVOKABLE void clearProjects();
     
-    const ZenRunner::Project* getProject(int index) const;
+    /**
+     * @brief Get project at index
+     * @param index Project index
+     * @return Project data as QVariantMap
+     */
+    Q_INVOKABLE QVariantMap getProject(int index) const;
 
 signals:
     /**

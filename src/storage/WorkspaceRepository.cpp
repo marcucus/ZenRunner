@@ -1,4 +1,6 @@
 #include "WorkspaceRepository.h"
+#include "core/Project.h"
+#include "core/Workspace.h"
 #include <QDebug>
 
 namespace ZenRunner::Storage {
@@ -216,34 +218,15 @@ QString WorkspaceRepository::getWorkspaceFilePath(const QString& workspaceId) co
 
 QJsonObject WorkspaceRepository::workspaceToJson(const Core::IWorkspace& workspace) const {
     QJsonObject json;
-    
     json["id"] = workspace.getId();
     json["name"] = workspace.getName();
     json["description"] = workspace.getDescription();
-    json["version"] = 1;  // Schema version for future compatibility
     
-    // Serialize projects
+    // Serialize project IDs  
     QJsonArray projectsArray;
-    const auto projects = workspace.getProjects();
-    
-    for (const auto& project : projects) {
-        if (!project) [[unlikely]] {
-            continue;
-        }
-        
-        QJsonObject projectObj;
-        projectObj["id"] = project->getId();
-        projectObj["name"] = project->getName();
-        projectObj["path"] = project->getPath();
-        
-        // Serialize pinned scripts
-        QJsonArray pinnedScripts;
-        for (const QString& scriptName : project->getPinnedScripts()) {
-            pinnedScripts.append(scriptName);
-        }
-        projectObj["pinnedScripts"] = pinnedScripts;
-        
-        projectsArray.append(projectObj);
+    const auto& projectIds = workspace.getProjectIds();
+    for (const auto& projectId : projectIds) {
+        projectsArray.append(projectId);
     }
     
     json["projects"] = projectsArray;
@@ -265,30 +248,16 @@ std::shared_ptr<Core::IWorkspace> WorkspaceRepository::workspaceFromJson(const Q
     auto workspace = Core::createWorkspace(name, id);
     workspace->setDescription(description);
     
-    // Load projects
+    // Load project IDs and store them in the workspace
     const QJsonArray projectsArray = json["projects"].toArray();
     
-    // NOTE: Project loading is incomplete in current implementation
-    // This is a known limitation that will be addressed when IProjectRepository is fully integrated
-    // For now, workspaces will be created but won't contain their projects until
-    // the project repository integration is completed
-    // TODO: Load actual project objects from IProjectRepository
-    
     for (const QJsonValue& projectValue : projectsArray) {
-        if (!projectValue.isObject()) [[unlikely]] {
-            continue;
+        if (projectValue.isString()) {
+            workspace->addProjectId(projectValue.toString());
         }
-        
-        const QJsonObject projectObj = projectValue.toObject();
-        const QString projectId = projectObj["id"].toString();
-        const QString projectPath = projectObj["path"].toString();
-        
-        // When IProjectRepository is available:
-        // 1. Load project from repository by ID
-        // 2. If not found, try to reload from path
-        // 3. Add loaded project to workspace
-        qDebug() << "TODO: Load project" << projectId << "from path" << projectPath;
     }
+    
+    qDebug() << "Workspace" << workspace->getName() << "loaded with" << workspace->getProjectIds().size() << "project IDs";
     
     return workspace;
 }

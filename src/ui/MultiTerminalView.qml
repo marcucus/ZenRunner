@@ -12,45 +12,106 @@ Item {
     property int currentProjectIndex: 0
     property var activeProcesses: ({})
     
+    // Map pour stocker les outputs de chaque projet
+    property var projectOutputs: ({})
+    property var pendingUpdates: ({})
+    property int maxBufferLines: 500
+    
+    // Timer pour batch les updates (réduit les ralentissements)
+    Timer {
+        id: updateTimer
+        interval: 250
+        repeat: false
+        onTriggered: {
+            flushPendingUpdates()
+        }
+    }
+    
     // Connections pour écouter les sorties des processus
     Connections {
         target: processManager
         
         function onProcessOutput(id, output) {
-            // Vérifier si ce processus appartient au projet actuel
-            if (isWorkspace && activeProcesses[id]) {
-                if (activeProcesses[id].projectIndex === currentProjectIndex) {
-                    appendOutput(output)
-                }
-            } else if (!isWorkspace) {
-                appendOutput(output)
+            if (activeProcesses[id]) {
+                var projectIndex = activeProcesses[id].projectIndex
+                queueOutputUpdate(projectIndex, output)
             }
         }
         
         function onProcessError(id, error) {
-            if (isWorkspace && activeProcesses[id]) {
-                if (activeProcesses[id].projectIndex === currentProjectIndex) {
-                    appendOutput("\n❌ Error: " + error + "\n")
-                }
-            } else if (!isWorkspace) {
-                appendOutput("\n❌ Error: " + error + "\n")
+            if (activeProcesses[id]) {
+                var projectIndex = activeProcesses[id].projectIndex
+                queueOutputUpdate(projectIndex, "\n❌ Error: " + error + "\n")
             }
         }
         
         function onProcessFinished(id, exitCode) {
-            if (isWorkspace && activeProcesses[id]) {
-                if (activeProcesses[id].projectIndex === currentProjectIndex) {
-                    appendOutput("\n✅ Process finished with exit code: " + exitCode + "\n")
-                }
-            } else if (!isWorkspace) {
-                appendOutput("\n✅ Process finished with exit code: " + exitCode + "\n")
+            if (activeProcesses[id]) {
+                var projectIndex = activeProcesses[id].projectIndex
+                queueOutputUpdate(projectIndex, "\n✅ Process finished with exit code: " + exitCode + "\n")
+            }
+        }
+    }
+    
+    function queueOutputUpdate(projectIndex, text) {
+        if (!pendingUpdates[projectIndex]) {
+            pendingUpdates[projectIndex] = ""
+        }
+        pendingUpdates[projectIndex] += text
+        
+        if (!updateTimer.running) {
+            updateTimer.start()
+        }
+    }
+    
+    function flushPendingUpdates() {
+        for (var projectIndex in pendingUpdates) {
+            if (pendingUpdates[projectIndex]) {
+                appendOutputToProject(parseInt(projectIndex), pendingUpdates[projectIndex])
+                pendingUpdates[projectIndex] = ""
+            }
+        }
+    }
+    
+    function appendOutputToProject(projectIndex, text) {
+        if (!projectOutputs[projectIndex]) {
+            projectOutputs[projectIndex] = "Terminal ready. Run a script to see output...\n"
+        }
+        
+        projectOutputs[projectIndex] += text
+        
+        // Limiter la taille du buffer pour éviter les ralentissements
+        // Ne faire le trim que si on dépasse significativement la limite
+        if (projectOutputs[projectIndex].length > maxBufferLines * 120) {
+            var lines = projectOutputs[projectIndex].split('\n')
+            if (lines.length > maxBufferLines) {
+                lines = lines.slice(lines.length - maxBufferLines)
+                projectOutputs[projectIndex] = lines.join('\n')
+            }
+        }
+        
+        // Mettre à jour seulement si c'est le projet visible
+        if (projectIndex === currentProjectIndex) {
+            terminalOutput.text = projectOutputs[projectIndex]
+            // Auto-scroll seulement si on est proche du bas
+            if (terminalOutput.length - terminalOutput.cursorPosition < 500) {
+                Qt.callLater(function() {
+                    terminalOutput.cursorPosition = terminalOutput.length
+                })
             }
         }
     }
     
     function appendOutput(text) {
-        terminalOutput.text += text
-        // Auto-scroll vers le bas
+        appendOutputToProject(currentProjectIndex, text)
+    }
+    
+    // Mettre à jour l'affichage quand on change de projet
+    onCurrentProjectIndexChanged: {
+        if (!projectOutputs[currentProjectIndex]) {
+            projectOutputs[currentProjectIndex] = "Terminal ready. Run a script to see output...\n"
+        }
+        terminalOutput.text = projectOutputs[currentProjectIndex]
         terminalOutput.cursorPosition = terminalOutput.length
     }
 
@@ -116,7 +177,10 @@ GlassCard {
                 accentColor: "#ef4444"
                 width: 90
                 onClicked: {
-                    terminalOutput.clear()
+                    projectOutputs[currentProjectIndex] = ""
+                    terminalOutput.text = ""
+                    var temp = projectOutputs
+                    projectOutputs = temp
                 }
             }
         }
@@ -141,7 +205,10 @@ GlassCard {
                 accentColor: "#ef4444"
                 width: 90
                 onClicked: {
-                    terminalOutput.clear()
+                    projectOutputs[currentProjectIndex] = ""
+                    terminalOutput.text = ""
+                    var temp = projectOutputs
+                    projectOutputs = temp
                 }
             }
         }
@@ -167,10 +234,18 @@ GlassCard {
                     width: parent.width
                     readOnly: true
                     selectByMouse: true
-                    wrapMode: TextEdit.Wrap
+                    wrapMode: TextEdit.NoWrap
+                    textFormat: TextEdit.PlainText
+                    renderType: Text.NativeRendering
                     
-                    font.family: "Monaco, Consolas, monospace"
-                    font.pixelSize: 12
+                    // Désactiver les animations de cursor
+                    cursorVisible: false
+                    
+                    // Optimisations de performance
+                    persistentSelection: false
+                    
+                    font.family: "Menlo, Monaco, Courier"
+                    font.pixelSize: 10
                     color: "#00ff00"
                     
                     text: "Terminal ready. Run a script to see output...\n"

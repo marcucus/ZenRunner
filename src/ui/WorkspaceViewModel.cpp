@@ -1,5 +1,7 @@
 #include "WorkspaceViewModel.h"
 #include "core/Workspace.h"
+#include "core/Project.h"
+#include "storage/ProjectRepository.h"
 #include <QDebug>
 #include <QColor>
 
@@ -21,7 +23,7 @@ void WorkspaceViewModel::setProcessManager(Core::IProcessManager* manager) {
     processManager_ = manager;
 }
 
-void WorkspaceViewModel::setProjectRepository(Storage::IProjectRepository* repository) {
+void WorkspaceViewModel::setProjectRepository(Storage::ProjectRepository* repository) {
     projectRepository_ = repository;
 }
 
@@ -94,16 +96,16 @@ void WorkspaceViewModel::loadWorkspaces() {
     emit countChanged();
 }
 
-bool WorkspaceViewModel::createWorkspace(const QString& name, const QString& description) {
+QString WorkspaceViewModel::createWorkspace(const QString& name, const QString& description) {
     if (!repository_) [[unlikely]] {
         qWarning() << "WorkspaceViewModel: No repository set";
         emit errorOccurred("No workspace repository configured");
-        return false;
+        return QString();
     }
 
     if (name.isEmpty()) [[unlikely]] {
         emit errorOccurred("Workspace name cannot be empty");
-        return false;
+        return QString();
     }
 
     // Create new workspace
@@ -118,8 +120,10 @@ bool WorkspaceViewModel::createWorkspace(const QString& name, const QString& des
     // Save to repository
     if (!repository_->saveWorkspace(*workspace)) [[unlikely]] {
         emit errorOccurred("Failed to save workspace");
-        return false;
+        return QString();
     }
+
+    QString workspaceId = workspace->getId();
 
     // Add to model
     const int newRow = static_cast<int>(workspaces_.size());
@@ -128,9 +132,9 @@ bool WorkspaceViewModel::createWorkspace(const QString& name, const QString& des
     endInsertRows();
 
     emit countChanged();
-    emit workspaceCreated(workspace->getId());
+    emit workspaceCreated(workspaceId);
 
-    return true;
+    return workspaceId;
 }
 
 bool WorkspaceViewModel::deleteWorkspace(const QString& workspaceId) {
@@ -209,34 +213,16 @@ bool WorkspaceViewModel::addProjectToWorkspace(const QString& workspaceId, const
         return false;
     }
 
-    if (!projectRepository_) [[unlikely]] {
-        qWarning() << "WorkspaceViewModel: No project repository set";
-        emit errorOccurred("No project repository configured");
-        return false;
-    }
-
     auto workspace = findWorkspace(workspaceId);
     if (!workspace) [[unlikely]] {
         emit errorOccurred("Workspace not found");
         return false;
     }
 
-    // Load the project from the project repository
-    auto project = projectRepository_->loadProject(projectId);
-    if (!project) [[unlikely]] {
-        qWarning() << "WorkspaceViewModel: Failed to load project" << projectId;
-        emit errorOccurred(QString("Failed to load project: %1").arg(projectId));
-        return false;
-    }
+    // Add project ID to workspace using the interface method
+    workspace->addProjectId(projectId);
 
-    // Add project to workspace
-    if (!workspace->addProject(project)) [[unlikely]] {
-        qWarning() << "WorkspaceViewModel: Failed to add project to workspace";
-        emit errorOccurred("Failed to add project to workspace");
-        return false;
-    }
-
-    // Save the updated workspace
+    // Save the updated workspace (pass the interface reference)
     if (!repository_->saveWorkspace(*workspace)) [[unlikely]] {
         emit errorOccurred("Failed to save workspace");
         return false;
@@ -252,6 +238,54 @@ bool WorkspaceViewModel::addProjectToWorkspace(const QString& workspaceId, const
     emit workspaceUpdated(workspaceId);
 
     return true;
+}
+
+bool WorkspaceViewModel::addScannedProjectToWorkspace(const QString& workspaceId, const QVariantMap& projectData) {
+    if (!repository_) [[unlikely]] {
+        qWarning() << "WorkspaceViewModel: No repository set";
+        emit errorOccurred("No workspace repository configured");
+        return false;
+    }
+
+    if (!projectRepository_) [[unlikely]] {
+        qWarning() << "WorkspaceViewModel: No project repository set";
+        emit errorOccurred("No project repository configured");
+        return false;
+    }
+
+    // Extract project data from QVariantMap
+    QString projectId = projectData.value("id").toString();
+    QString projectName = projectData.value("name").toString();
+    QString projectPath = projectData.value("path").toString();
+    
+    if (projectId.isEmpty() || projectPath.isEmpty()) [[unlikely]] {
+        emit errorOccurred("Invalid project data: missing id or path");
+        return false;
+    }
+    
+    qDebug() << "Adding scanned project to workspace:" << projectName << "ID:" << projectId;
+    
+    // Create a Project object from the data
+    auto projectResult = Project::fromDirectory(projectPath);
+    if (!projectResult.isOk()) [[unlikely]] {
+        qWarning() << "Failed to load project from directory:" << projectPath;
+        emit errorOccurred(QString("Failed to load project: %1").arg(projectResult.error()));
+        return false;
+    }
+    
+    auto project = std::make_shared<Project>(std::move(projectResult.value()));
+    
+    // Save the project to the repository
+    if (!projectRepository_->saveProject(*project)) [[unlikely]] {
+        qWarning() << "Failed to save project to repository";
+        emit errorOccurred("Failed to save project to repository");
+        return false;
+    }
+    
+    qDebug() << "Project saved to repository, now adding to workspace";
+    
+    // Now add it to the workspace using the existing method
+    return addProjectToWorkspace(workspaceId, project->id());
 }
 
 bool WorkspaceViewModel::removeProjectFromWorkspace(const QString& workspaceId, const QString& projectId) {
@@ -391,22 +425,31 @@ QVariantList WorkspaceViewModel::getWorkspaceProjects(int index) const {
         return result;
     }
     
-    const auto& projects = workspace->getProjects();
+    if (!projectRepository_) [[unlikely]] {
+        qWarning() << "WorkspaceViewModel: No project repository set";
+        return result;
+    }
     
-    // For each project, retrieve project information
-    for (const auto& project : projects) {
-        if (!project) [[unlikely]] {
+    // Get project IDs from workspace
+    const auto& projectIds = workspace->getProjectIds();
+    qDebug() << "Loading" << projectIds.size() << "projects for workspace" << workspace->getName();
+    
+    // Load each project from repository
+    for (const auto& projectId : projectIds) {
+        auto project = projectRepository_->loadProject(projectId);
+        if (!project) {
+            qWarning() << "Failed to load project with ID:" << projectId;
             continue;
         }
         
         QVariantMap projectInfo;
-        projectInfo["id"] = project->getId();
-        projectInfo["name"] = project->getName();
-        projectInfo["path"] = project->getPath();
+        projectInfo["id"] = project->id();
+        projectInfo["name"] = project->name();
+        projectInfo["path"] = project->path();
         
         // Get scripts from project
         QVariantList scripts;
-        const auto& projectScripts = project->getScripts();
+        const auto& projectScripts = project->scripts();
         for (const auto& script : projectScripts) {
             QVariantMap scriptInfo;
             scriptInfo["name"] = script.name;
@@ -417,6 +460,8 @@ QVariantList WorkspaceViewModel::getWorkspaceProjects(int index) const {
         
         result.append(projectInfo);
     }
+    
+    qDebug() << "Loaded" << result.size() << "projects from repository";
     
     return result;
 }

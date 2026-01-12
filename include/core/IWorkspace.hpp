@@ -96,6 +96,18 @@ public:
      * @return Project count
      */
     virtual size_t getProjectCount() const = 0;
+    
+    /**
+     * @brief Add a project ID to the workspace (for persistence)
+     * @param projectId Project identifier
+     */
+    virtual void addProjectId(const QString& projectId) = 0;
+    
+    /**
+     * @brief Get all project IDs in the workspace
+     * @return Vector of project IDs
+     */
+    virtual std::vector<QString> getProjectIds() const = 0;
 
     /**
      * @brief Execution mode for batch operations

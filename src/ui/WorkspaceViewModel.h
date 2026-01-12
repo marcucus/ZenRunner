@@ -3,7 +3,7 @@
 #include "core/IWorkspace.hpp"
 #include "core/IProcessManager.hpp"
 #include "storage/IWorkspaceRepository.hpp"
-#include "storage/IProjectRepository.hpp"
+#include "../storage/ProjectRepository.h"
 #include <QAbstractListModel>
 #include <QObject>
 #include <memory>
@@ -50,7 +50,7 @@ public:
      * @brief Set the project repository
      * @param repository Pointer to project repository
      */
-    void setProjectRepository(Storage::IProjectRepository* repository);
+    void setProjectRepository(Storage::ProjectRepository* repository);
 
     // QAbstractListModel interface
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -73,9 +73,9 @@ public slots:
      * @brief Create a new workspace
      * @param name Workspace name
      * @param description Workspace description
-     * @return true if workspace was created
+     * @return Workspace ID if created, empty string otherwise
      */
-    bool createWorkspace(const QString& name, const QString& description = QString());
+    QString createWorkspace(const QString& name, const QString& description = QString());
 
     /**
      * @brief Delete a workspace
@@ -99,7 +99,15 @@ public slots:
      * @param projectId Project identifier
      * @return true if project was added
      */
-    bool addProjectToWorkspace(const QString& workspaceId, const QString& projectId);
+    Q_INVOKABLE bool addProjectToWorkspace(const QString& workspaceId, const QString& projectId);
+    
+    /**
+     * @brief Add a scanned project to a workspace (saves it first)
+     * @param workspaceId Workspace identifier
+     * @param projectData QVariantMap containing project data (id, name, path, scripts)
+     * @return true if project was added
+     */
+    Q_INVOKABLE bool addScannedProjectToWorkspace(const QString& workspaceId, const QVariantMap& projectData);
 
     /**
      * @brief Remove a project from a workspace
@@ -173,7 +181,7 @@ signals:
 private:
     std::vector<std::shared_ptr<Core::IWorkspace>> workspaces_;
     Storage::IWorkspaceRepository* repository_;
-    Storage::IProjectRepository* projectRepository_;
+    Storage::ProjectRepository* projectRepository_;
     Core::IProcessManager* processManager_;
 
     /**

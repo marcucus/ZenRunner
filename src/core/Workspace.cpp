@@ -109,6 +109,16 @@ public:
     size_t getProjectCount() const override {
         return projects_.size();
     }
+    
+    void addProjectId(const QString& projectId) override {
+        if (std::find(projectIds_.begin(), projectIds_.end(), projectId) == projectIds_.end()) {
+            projectIds_.push_back(projectId);
+        }
+    }
+    
+    std::vector<QString> getProjectIds() const override {
+        return projectIds_;
+    }
 
     int startAll(const QString& scriptName, IWorkspace::ExecutionMode mode) override {
         if (!processManager_) [[unlikely]] {
@@ -269,12 +279,13 @@ public:
 
         return false;
     }
-
+    
 private:
     QString id_;
     QString name_;
     QString description_;
     std::vector<std::shared_ptr<IProject>> projects_;
+    std::vector<QString> projectIds_;  // Store project IDs for persistence
     IProcessManager* processManager_;  // Non-owning pointer to process manager
 };
 

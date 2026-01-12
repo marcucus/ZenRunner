@@ -35,53 +35,12 @@ Item {
         }
     }
     
-    // Project addition dialog
-    Dialog {
-        id: addProjectDialog
-        title: "Add Project"
-        modal: true
-        anchors.centerIn: Overlay.overlay
-        width: 500
-        
-        ColumnLayout {
-            anchors.fill: parent
-            spacing: 16
-            
-            Text {
-                text: "Project Path"
-                font.pixelSize: 14
-                color: "#ffffff"
-            }
-            
-            TextField {
-                id: projectPathField
-                Layout.fillWidth: true
-                placeholderText: "Enter project path..."
-                font.pixelSize: 14
-            }
-            
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 12
-                
-                Item { Layout.fillWidth: true }
-                
-                Button {
-                    text: "Cancel"
-                    onClicked: addProjectDialog.close()
-                }
-                
-                Button {
-                    text: "Add"
-                    highlighted: true
-                    onClicked: {
-                        if (projectPathField.text.length > 0) {
-                            projectManager.addProject(projectPathField.text)
-                            addProjectDialog.close()
-                        }
-                    }
-                }
-            }
+    // Folder dialog for adding a single project
+    FolderDialog {
+        id: addProjectFolderDialog
+        title: "Select Project Folder"
+        onAccepted: {
+            projectManager.addProject(selectedFolder)
         }
     }
     
@@ -91,6 +50,238 @@ Item {
         title: "Select Project Folder to Scan"
         onAccepted: {
             projectManager.scanFolder(selectedFolder, 3)
+        }
+    }
+    
+    // Advanced workspace creation dialog with project selection
+    Dialog {
+        id: workspaceCreationDialog
+        title: "Create New Workspace"
+        modal: true
+        anchors.centerIn: Overlay.overlay
+        width: 600
+        height: 700
+        
+        property var selectedProjectIds: []
+        
+        onOpened: {
+            selectedProjectIds = []
+            workspaceNameField.text = ""
+            workspaceDescField.text = ""
+        }
+        
+        background: Rectangle {
+            color: Qt.rgba(0.1, 0.1, 0.15, 0.95)
+            border.color: Qt.rgba(1, 1, 1, 0.1)
+            border.width: 1
+            radius: 12
+        }
+        
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 16
+            
+            // Workspace name
+            Column {
+                Layout.fillWidth: true
+                spacing: 8
+                
+                Text {
+                    text: "Workspace Name"
+                    font.pixelSize: 13
+                    font.weight: Font.Medium
+                    color: "#cccccc"
+                }
+                
+                TextField {
+                    id: workspaceNameField
+                    width: parent.width
+                    placeholderText: "e.g., Full Stack Development"
+                    font.pixelSize: 14
+                    
+                    background: Rectangle {
+                        color: Qt.rgba(0, 0, 0, 0.3)
+                        border.color: workspaceNameField.activeFocus ? "#4a90e2" : Qt.rgba(1, 1, 1, 0.1)
+                        border.width: 1
+                        radius: 6
+                    }
+                    
+                    color: "#ffffff"
+                }
+            }
+            
+            // Workspace description
+            Column {
+                Layout.fillWidth: true
+                spacing: 8
+                
+                Text {
+                    text: "Description (Optional)"
+                    font.pixelSize: 13
+                    font.weight: Font.Medium
+                    color: "#cccccc"
+                }
+                
+                TextField {
+                    id: workspaceDescField
+                    width: parent.width
+                    placeholderText: "Describe this workspace..."
+                    font.pixelSize: 13
+                    
+                    background: Rectangle {
+                        color: Qt.rgba(0, 0, 0, 0.3)
+                        border.color: workspaceDescField.activeFocus ? "#4a90e2" : Qt.rgba(1, 1, 1, 0.1)
+                        border.width: 1
+                        radius: 6
+                    }
+                    
+                    color: "#ffffff"
+                }
+            }
+            
+            // Scan folder button
+            GlassButton {
+                text: "📁 Scan Folder for Projects"
+                accentColor: "#7c4dff"
+                Layout.fillWidth: true
+                onClicked: folderDialog.open()
+            }
+            
+            // Project selection list
+            Column {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: 8
+                
+                Text {
+                    text: "Select Projects (" + workspaceCreationDialog.selectedProjectIds.length + " selected)"
+                    font.pixelSize: 13
+                    font.weight: Font.Medium
+                    color: "#cccccc"
+                }
+                
+                ScrollView {
+                    width: parent.width
+                    height: parent.height - 30
+                    clip: true
+                    
+                    ListView {
+                        id: projectSelectionList
+                        width: parent.width
+                        spacing: 8
+                        
+                        model: projectManager
+                        
+                        delegate: Rectangle {
+                            width: ListView.view.width
+                            height: 60
+                            color: checkBox.checked ? Qt.rgba(0.5, 0.3, 0.8, 0.2) : Qt.rgba(1, 1, 1, 0.05)
+                            radius: 8
+                            border.width: checkBox.checked ? 1 : 0
+                            border.color: Qt.rgba(0.5, 0.3, 0.8, 0.5)
+                            
+                            required property int index
+                            required property string name
+                            required property string path
+                            
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.margins: 12
+                                spacing: 12
+                                
+                                CheckBox {
+                                    id: checkBox
+                                    checked: false
+                                    
+                                    onCheckedChanged: {
+                                        var arr = workspaceCreationDialog.selectedProjectIds
+                                        if (checked) {
+                                            if (arr.indexOf(index) === -1) {
+                                                arr.push(index)
+                                            }
+                                        } else {
+                                            const idx = arr.indexOf(index)
+                                            if (idx > -1) {
+                                                arr.splice(idx, 1)
+                                            }
+                                        }
+                                        workspaceCreationDialog.selectedProjectIds = arr
+                                    }
+                                }
+                                
+                                Column {
+                                    Layout.fillWidth: true
+                                    spacing: 4
+                                    
+                                    Text {
+                                        text: name
+                                        font.pixelSize: 13
+                                        font.weight: Font.DemiBold
+                                        color: "#ffffff"
+                                        elide: Text.ElideRight
+                                        width: parent.width
+                                    }
+                                    
+                                    Text {
+                                        text: path
+                                        font.pixelSize: 10
+                                        color: "#888888"
+                                        elide: Text.ElideMiddle
+                                        width: parent.width
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Action buttons
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 12
+                
+                Item { Layout.fillWidth: true }
+                
+                Button {
+                    text: "Cancel"
+                    onClicked: workspaceCreationDialog.close()
+                }
+                
+                Button {
+                    text: "Create Workspace"
+                    highlighted: true
+                    enabled: workspaceNameField.text.trim() !== ""
+                    onClicked: {
+                        if (workspaceViewModel) {
+                            // Create workspace
+                            var desc = workspaceDescField.text.trim() !== "" ? 
+                                workspaceDescField.text : 
+                                (workspaceCreationDialog.selectedProjectIds.length + " projects")
+                            
+                            var workspaceId = workspaceViewModel.createWorkspace(
+                                workspaceNameField.text,
+                                desc
+                            )
+                            
+                            // Add selected projects to workspace
+                            if (workspaceId && workspaceCreationDialog.selectedProjectIds.length > 0) {
+                                console.log("Adding", workspaceCreationDialog.selectedProjectIds.length, "projects to workspace", workspaceId)
+                                for (var i = 0; i < workspaceCreationDialog.selectedProjectIds.length; i++) {
+                                    var projectIdx = workspaceCreationDialog.selectedProjectIds[i]
+                                    var projectData = projectManager.getProject(projectIdx)
+                                    if (projectData && projectData.id) {
+                                        console.log("Adding project:", projectData.name, "ID:", projectData.id)
+                                        workspaceViewModel.addScannedProjectToWorkspace(workspaceId, projectData)
+                                    }
+                                }
+                            }
+                            
+                            workspaceCreationDialog.close()
+                        }
+                    }
+                }
+            }
         }
     }
     
@@ -125,7 +316,7 @@ Item {
                 text: "+ Add Project"
                 accentColor: "#7c4dff"
                 width: 130
-                onClicked: addProjectDialog.open()
+                onClicked: addProjectFolderDialog.open()
             }
             
             // Bouton Create Workspace
@@ -134,8 +325,7 @@ Item {
                 accentColor: "#e91e63"
                 width: 160
                 onClicked: {
-                    workspaceDialog.resetForNew()
-                    workspaceDialog.open()
+                    workspaceCreationDialog.open()
                 }
             }
         }
@@ -200,6 +390,7 @@ Item {
                                 height: workspaceGrid.cellHeight - 8
                                 
                                 required property int index
+                                required property string workspaceId
                                 required property string name
                                 required property string description
                                 required property int projectCount
@@ -233,41 +424,41 @@ Item {
                                         // Info workspace
                                         ColumnLayout {
                                             Layout.fillWidth: true
-                                            spacing: 2
+                                            Layout.fillHeight: true
+                                            spacing: 4
                                             
                                             Text {
                                                 Layout.fillWidth: true
                                                 text: name
-                                                font.pixelSize: 13
+                                                font.pixelSize: 14
                                                 font.weight: Font.Bold
                                                 color: "#ffffff"
                                                 elide: Text.ElideRight
-                                                maximumLineCount: 1
                                             }
                                             
                                             Text {
                                                 Layout.fillWidth: true
                                                 text: description || "No description"
-                                                font.pixelSize: 9
-                                                color: "#888888"
+                                                font.pixelSize: 10
+                                                color: "#aaaaaa"
                                                 elide: Text.ElideRight
+                                                wrapMode: Text.Wrap
                                                 maximumLineCount: 2
-                                                wrapMode: Text.WordWrap
                                             }
                                             
                                             Item { Layout.fillHeight: true }
                                             
                                             // Badge nombre de projets
                                             Rectangle {
-                                                Layout.preferredWidth: 50
-                                                Layout.preferredHeight: 18
-                                                radius: 9
+                                                Layout.preferredWidth: 60
+                                                Layout.preferredHeight: 20
+                                                radius: 10
                                                 color: Qt.rgba(0.5, 0.3, 0.8, 0.3)
                                                 
                                                 Text {
                                                     anchors.centerIn: parent
                                                     text: projectCount + " 📦"
-                                                    font.pixelSize: 9
+                                                    font.pixelSize: 10
                                                     font.weight: Font.Medium
                                                     color: "#b794f6"
                                                 }
@@ -319,10 +510,8 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                         
                                         onClicked: {
-                                            console.log("Delete workspace clicked for:", name)
-                                            if (workspaceViewModel) {
-                                                var workspaceId = workspaceViewModel.data(workspaceViewModel.index(index, 0), 256)
-                                                console.log("Deleting workspace ID:", workspaceId)
+                                            console.log("Delete workspace clicked for:", name, "ID:", workspaceId)
+                                            if (workspaceViewModel && workspaceId) {
                                                 workspaceViewModel.deleteWorkspace(workspaceId)
                                             }
                                         }
@@ -358,7 +547,7 @@ Item {
                             clip: true
                             
                             cellWidth: Math.floor(width / 2)
-                            cellHeight: 100
+                            cellHeight: 140
                             
                             model: projectManager
                             
@@ -367,17 +556,18 @@ Item {
                             }
                             
                             delegate: Item {
-                                width: workspaceGrid.cellWidth - 8
-                                height: workspaceGrid.cellHeight - 8
+                                width: projectGrid.cellWidth - 16
+                                height: projectGrid.cellHeight - 16
                                 
                                 required property int index
                                 required property string name
-                                required property string description
-                                required property int projectCount
+                                required property string path
+                                required property int scriptCount
+                                required property var scripts
                                 
                                 GlassCard {
                                     anchors.fill: parent
-                                    glassOpacity: workspaceMouseArea.containsMouse ? 0.2 : 0.1
+                                    glassOpacity: projectMouseArea.containsMouse ? 0.2 : 0.1
                                     
                                     RowLayout {
                                         anchors.fill: parent
@@ -405,39 +595,40 @@ Item {
                                     ColumnLayout {
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
-                                        spacing: 2
+                                        spacing: 4
                                         
                                         Text {
                                             Layout.fillWidth: true
                                             text: name
-                                            font.pixelSize: 13
+                                            font.pixelSize: 14
                                             font.weight: Font.Bold
                                             color: "#ffffff"
                                             elide: Text.ElideRight
-                                            maximumLineCount: 1
                                         }
                                         
                                         Text {
                                             Layout.fillWidth: true
                                             text: path
-                                            font.pixelSize: 9
-                                            color: "#888888"
+                                            font.pixelSize: 10
+                                            color: "#aaaaaa"
                                             elide: Text.ElideMiddle
+                                            wrapMode: Text.Wrap
                                             maximumLineCount: 2
-                                            wrapMode: Text.WordWrap
                                         }
+                                        
+                                        Item { Layout.fillHeight: true }
                                         
                                         // Badge nombre de scripts
                                         Rectangle {
-                                            Layout.preferredWidth: 55
-                                            Layout.preferredHeight: 20
-                                            radius: 10
+                                            Layout.preferredWidth: 70
+                                            Layout.preferredHeight: 22
+                                            radius: 11
                                             color: Qt.rgba(0.3, 0.6, 1.0, 0.3)
                                             
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: scripts ? scripts.length + " ⚡" : "0 ⚡"
-                                                font.pixelSize: 9
+                                                font.pixelSize: 10
                                                 font.weight: Font.Medium
                                                 color: "#4a90e2"
                                             }
