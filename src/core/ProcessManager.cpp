@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
+#include <cstring>
 #endif
 
 namespace ZenRunner {
@@ -51,7 +52,14 @@ AsyncProcess::AsyncProcess(ProcessConfig config, QObject* parent)
     // This allows us to kill all child processes when stopping
     // setpgid(0, 0) creates a new process group where the calling process becomes the group leader
     process_->setChildProcessModifier([](){ 
-        ::setpgid(0, 0);
+        // Note: This runs in the child process after fork() but before exec()
+        // We cannot use Qt logging here, only basic system calls
+        if (::setpgid(0, 0) == -1) {
+            // If setpgid fails, write to stderr (the process will still start)
+            // Common reasons for failure: process already in another group, permissions
+            const char* msg = "Warning: Failed to create new process group\n";
+            ::write(STDERR_FILENO, msg, ::strlen(msg));
+        }
     });
 #endif
     
@@ -345,13 +353,15 @@ bool AsyncProcess::killProcessGroup(int signal) {
     }
     
     // If killpg failed, log the error and fall back to Qt's methods
+    const char* signalName = (signal == SIGTERM) ? "SIGTERM" : "SIGKILL";
+    addLogEntry(QString("Failed to send %1 to process group (errno: %2), falling back to Qt method")
+                   .arg(signalName).arg(errno),
+               LogLevel::Warning, true);
+    
+    // Fall back to Qt's process termination
     if (signal == SIGTERM) {
-        addLogEntry(QString("Failed to send SIGTERM to process group (errno: %1), falling back to terminate()").arg(errno),
-                   LogLevel::Warning, true);
         process_->terminate();
-    } else if (signal == SIGKILL) {
-        addLogEntry(QString("Failed to send SIGKILL to process group (errno: %1), falling back to kill()").arg(errno),
-                   LogLevel::Warning, true);
+    } else {
         process_->kill();
     }
     
