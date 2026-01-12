@@ -47,10 +47,13 @@ add_compile_options(
     $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-ffunction-sections>
 )
 
-# Link-time optimizations for memory
+# Performance optimization flags for Release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_options(
+        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-O3>  # Maximum optimization
         $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-flto>  # Link-time optimization
+        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-march=native>  # Optimize for current CPU
+        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-ffast-math>  # Fast math operations
     )
     if(APPLE)
         add_link_options(

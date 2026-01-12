@@ -1,6 +1,7 @@
 #include "core/ProcessManager.h"
 #include <QDateTime>
 #include <QDir>
+#include <QCoreApplication>
 #include <algorithm>
 
 #ifdef Q_OS_UNIX
@@ -176,30 +177,57 @@ void AsyncProcess::clearLogs() {
     logBuffer_.clear();
 }
 
+void AsyncProcess::processChunkedOutput(bool isStderr) {
+    // Configuration constants for chunk processing
+    constexpr qint64 MAX_CHUNK_SIZE = 65536; // 64KB chunks
+    constexpr int CHUNKS_BEFORE_YIELD = 4; // Process 4 chunks (256KB) before yielding
+    constexpr int PROCESS_EVENTS_TIMEOUT_MS = 5; // Short timeout to reduce context switching
+    
+    int chunksProcessed = 0;
+    
+    while (process_->bytesAvailable() > 0) {
+        // Use move semantics to avoid copies
+        QByteArray data = process_->read(MAX_CHUNK_SIZE);
+        if (data.isEmpty()) [[unlikely]] {
+            break;
+        }
+        
+        QString output = QString::fromUtf8(data);
+        
+        // Emit signal before processing to minimize latency for UI updates
+        emit outputReceived(output, isStderr);
+        
+        // Split by newlines and add each line as a log entry
+        // Reserve approximate capacity to avoid reallocations
+        QStringList lines = output.split('\n', Qt::SkipEmptyParts);
+        const LogLevel level = isStderr ? LogLevel::Error : LogLevel::Info;
+        
+        for (const QString& line : lines) {
+            if (!line.trimmed().isEmpty()) [[likely]] {
+                addLogEntry(line, level, isStderr);
+            }
+        }
+        
+        chunksProcessed++;
+        
+        // Allow event loop to process other events to keep UI responsive
+        // Only yield after processing multiple chunks to reduce context switching
+        // Note: ExcludeUserInputEvents is intentional - during heavy output processing,
+        // we prioritize log rendering over user input to prevent event queue buildup.
+        // User input is still processed between readyRead signals (typically < 100ms gaps).
+        if (process_->bytesAvailable() > 0 && chunksProcessed >= CHUNKS_BEFORE_YIELD) {
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, PROCESS_EVENTS_TIMEOUT_MS);
+            chunksProcessed = 0;
+        }
+    }
+}
+
 void AsyncProcess::onReadyReadStandardOutput() {
     if (!config_.captureOutput) [[unlikely]] {
         return;
     }
     
-    // Use move semantics to avoid copies
-    QByteArray data = process_->readAllStandardOutput();
-    if (data.isEmpty()) [[unlikely]] {
-        return;
-    }
-    
-    QString output = QString::fromUtf8(data);
-    
-    // Emit signal before processing to minimize latency for UI updates
-    emit outputReceived(output, false);
-    
-    // Split by newlines and add each line as a log entry
-    // Reserve approximate capacity to avoid reallocations
-    QStringList lines = output.split('\n', Qt::SkipEmptyParts);
-    for (const QString& line : lines) {
-        if (!line.trimmed().isEmpty()) [[likely]] {
-            addLogEntry(line, LogLevel::Info, false);
-        }
-    }
+    processChunkedOutput(false);
 }
 
 void AsyncProcess::onReadyReadStandardError() {
@@ -207,24 +235,7 @@ void AsyncProcess::onReadyReadStandardError() {
         return;
     }
     
-    // Use move semantics to avoid copies
-    QByteArray data = process_->readAllStandardError();
-    if (data.isEmpty()) [[unlikely]] {
-        return;
-    }
-    
-    QString output = QString::fromUtf8(data);
-    
-    // Emit signal before processing to minimize latency for UI updates
-    emit outputReceived(output, true);
-    
-    // Split by newlines and add each line as a log entry
-    QStringList lines = output.split('\n', Qt::SkipEmptyParts);
-    for (const QString& line : lines) {
-        if (!line.trimmed().isEmpty()) [[likely]] {
-            addLogEntry(line, LogLevel::Error, true);
-        }
-    }
+    processChunkedOutput(true);
 }
 
 void AsyncProcess::onFinished(int exitCode, QProcess::ExitStatus exitStatus) {
