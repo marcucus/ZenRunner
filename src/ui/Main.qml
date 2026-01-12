@@ -110,6 +110,10 @@ ApplicationWindow {
                         mainWindow.isWorkspace = workspace
                         stackView.push(detailView)
                     }
+                    
+                    onProcessMonitorRequested: {
+                        stackView.push(processMonitorView)
+                    }
                 }
             }
             
@@ -121,6 +125,17 @@ ApplicationWindow {
                     selectedItem: mainWindow.selectedItem
                     isWorkspace: mainWindow.isWorkspace
                     
+                    onBackClicked: {
+                        stackView.pop()
+                    }
+                }
+            }
+            
+            // Process Monitor view
+            Component {
+                id: processMonitorView
+                
+                ProcessMonitor {
                     onBackClicked: {
                         stackView.pop()
                     }

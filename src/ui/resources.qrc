@@ -16,6 +16,7 @@
         <file>StatisticsPanel.qml</file>
         <file>DetailView.qml</file>
         <file>MultiTerminalView.qml</file>
+        <file>ProcessMonitor.qml</file>
         
         <!-- Reusable components -->
         <file>components/GlassCard.qml</file>

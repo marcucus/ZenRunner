@@ -267,6 +267,36 @@ public:
      * @return true if process was created and started
      */
     Q_INVOKABLE bool runScript(const QString& id, const QString& command, const QString& workingDir);
+    
+    /**
+     * @brief Get information about all processes (for process monitor page)
+     * @return List of QVariantMap containing process info (id, state, pid, command, workingDir)
+     */
+    Q_INVOKABLE QVariantList getAllProcessesInfo() const;
+    
+    /**
+     * @brief Get information about a specific process
+     * @param id Process identifier
+     * @return QVariantMap with process info or empty map if not found
+     */
+    Q_INVOKABLE QVariantMap getProcessInfo(const QString& id) const;
+    
+    /**
+     * @brief Force kill a process immediately (sends SIGKILL)
+     * @param id Process identifier
+     */
+    Q_INVOKABLE void killProcess(const QString& id);
+    
+    /**
+     * @brief Stop all running processes (invokable from QML)
+     * @param timeoutMs Maximum time to wait for graceful termination
+     */
+    Q_INVOKABLE void stopAllProcesses(int timeoutMs = 5000);
+    
+    /**
+     * @brief Get count of running processes (invokable from QML)
+     */
+    Q_INVOKABLE int getRunningCount() const;
 
 signals:
     /**
@@ -302,6 +332,7 @@ signals:
 
 private:
     void connectProcessSignals(const QString& id, AsyncProcess* process);
+    QString processStateToString(ProcessState state) const;
 
     std::unordered_map<QString, std::unique_ptr<AsyncProcess>> processes_;
     mutable std::mutex processesMutex_;
