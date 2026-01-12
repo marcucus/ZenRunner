@@ -259,6 +259,8 @@ cd packaging/macos
 ./build-dmg.sh
 ```
 
+📖 **Guide complet en français** : [CREER_DMG.md](CREER_DMG.md)
+
 ### Linux
 Multiple package formats:
 - DEB (Ubuntu/Debian)

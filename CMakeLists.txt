@@ -42,18 +42,33 @@ endif()
 
 # Memory optimization flags
 add_compile_options(
-    $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-fno-exceptions>  # Disable exceptions for smaller binary
     $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-fdata-sections>  # Enable dead code elimination
     $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-ffunction-sections>
 )
 
 # Performance optimization flags for Release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    # Option to enable native CPU optimizations (not recommended for distribution)
+    option(ENABLE_NATIVE_OPTIMIZATIONS "Enable CPU-specific optimizations (march=native)" OFF)
+    
     add_compile_options(
         $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-O3>  # Maximum optimization
         $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-flto>  # Link-time optimization
-        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-march=native>  # Optimize for current CPU
-        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-ffast-math>  # Fast math operations
+    )
+    
+    # Only enable march=native if explicitly requested (local builds only)
+    if(ENABLE_NATIVE_OPTIMIZATIONS)
+        add_compile_options(
+            $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-march=native>  # Optimize for current CPU
+        )
+        message(WARNING "Building with -march=native. Binary will NOT be portable to other CPUs!")
+    endif()
+    
+    # Use safer floating-point optimizations instead of -ffast-math
+    # -ffast-math can break IEEE 754 compliance and cause unexpected behavior
+    add_compile_options(
+        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-fno-math-errno>  # Don't set errno on math functions
+        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-ffinite-math-only>  # Assume finite math (no NaN/Inf)
     )
     if(APPLE)
         add_link_options(
