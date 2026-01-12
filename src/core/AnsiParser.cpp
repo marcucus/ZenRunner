@@ -69,8 +69,7 @@ public:
                 i += 2; // Skip ESC[
                 const int start = i;
                 
-                // Find the end of the sequence (letter or 'm')
-                // Optimized: use direct pointer access for faster iteration
+                // Find the end of the sequence (letter)
                 while (i < len && !text[i].isLetter()) {
                     i++;
                 }
@@ -80,7 +79,8 @@ public:
                     
                     // We primarily care about 'm' (SGR - Select Graphic Rendition)
                     if (commandChar == 'm') {
-                        // Parse SGR parameters - use QStringView to avoid string copy
+                        // Parse SGR parameters
+                        // Note: text.mid() uses Qt's implicit sharing, so minimal overhead
                         const QString params = text.mid(start, i - start);
                         parseSgrSequence(params, fgColor, bgColor, bold, italic, underline);
                     }

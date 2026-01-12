@@ -223,7 +223,8 @@ void AsyncProcess::processChunkedOutput(bool isStderr) {
     int chunksProcessed = 0;
     
     while (process_->bytesAvailable() > 0) {
-        // Use move semantics to avoid copies
+        // Read chunk from process - QProcess::read returns data by value
+        // Qt uses implicit sharing (copy-on-write) so this is efficient
         const QByteArray data = process_->read(MAX_CHUNK_SIZE);
         if (data.isEmpty()) [[unlikely]] {
             break;
