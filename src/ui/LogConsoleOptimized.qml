@@ -16,6 +16,8 @@ Item {
     readonly property int batchRemovalCount: 500
     readonly property int timestampWidth: 80
     readonly property int indicatorWidth: 20
+    readonly property int rowSpacing: 8  // Matches Row spacing
+    readonly property int totalSpacing: rowSpacing * 2  // Left and right spacing
     
     // Function to clear logs
     function clearLogs() {
@@ -65,12 +67,10 @@ Item {
         // Limit buffer to maxBufferLines for better performance
         // This is more aggressive than the 5000 line circular buffer to ensure UI responsiveness
         if (logListModel.count >= maxBufferLines) {
-            // Remove oldest lines in batch by removing from end to start (more efficient)
-            // This avoids index shifting on each removal
+            // Remove oldest lines in batch from the beginning
+            // ListModel.remove(index, count) is more efficient than individual removes
             var removeCount = Math.min(batchRemovalCount, logListModel.count)
-            for (var i = removeCount - 1; i >= 0; i--) {
-                logListModel.remove(i)
-            }
+            logListModel.remove(0, removeCount)
         }
         
         var timestamp = Qt.formatTime(new Date(), "hh:mm:ss.zzz")
@@ -80,11 +80,10 @@ Item {
             "isError": isError
         })
         
-        // Auto-scroll only if user is near bottom (within 5 items)
-        // This prevents forced scrolling when user is reviewing earlier logs
-        var nearBottom = logListView.count > 0 && 
-                         (logListView.currentIndex < 0 || 
-                          logListView.count - logListView.currentIndex <= 5)
+        // Auto-scroll only if user is near bottom of scroll area
+        // Check if within 50 pixels of the bottom to avoid forced scrolling
+        var nearBottom = logListView.atYEnd || 
+                         (logListView.contentHeight - logListView.contentY - logListView.height < 50)
         
         if (nearBottom) {
             Qt.callLater(function() {
@@ -161,8 +160,8 @@ Item {
                     elide: Text.ElideNone
                     
                     // Calculate available width accounting for timestamp, indicator, and spacing
-                    // Row spacing is 8px, so we have: timestamp + 8 + indicator + 8 + text
-                    width: Math.min(implicitWidth, logListView.width - root.timestampWidth - root.indicatorWidth - 16)
+                    // Row spacing is applied between elements (timestamp + spacing + indicator + spacing + text)
+                    width: Math.min(implicitWidth, logListView.width - root.timestampWidth - root.indicatorWidth - root.totalSpacing)
                 }
             }
         }
