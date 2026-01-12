@@ -212,6 +212,9 @@ void AsyncProcess::processChunkedOutput(bool isStderr) {
         
         // Allow event loop to process other events to keep UI responsive
         // Only yield after processing multiple chunks to reduce context switching
+        // Note: ExcludeUserInputEvents is intentional - during heavy output processing,
+        // we prioritize log rendering over user input to prevent event queue buildup.
+        // User input is still processed between readyRead signals (typically < 100ms gaps).
         if (process_->bytesAvailable() > 0 && chunksProcessed >= CHUNKS_BEFORE_YIELD) {
             QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, PROCESS_EVENTS_TIMEOUT_MS);
             chunksProcessed = 0;

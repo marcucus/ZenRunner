@@ -19,6 +19,12 @@ Item {
     readonly property int rowSpacing: 8  // Matches Row spacing
     readonly property int totalSpacing: rowSpacing * 2  // Left and right spacing
     
+    // Calculate available width for log text once (used by all delegates)
+    readonly property int logTextMaxWidth: {
+        // ListView width minus timestamp, indicator, and spacing
+        return parent ? parent.width - timestampWidth - indicatorWidth - totalSpacing : 800
+    }
+    
     // Function to clear logs
     function clearLogs() {
         logListModel.clear()
@@ -159,9 +165,8 @@ Item {
                     renderType: Text.NativeRendering
                     elide: Text.ElideNone
                     
-                    // Calculate available width accounting for timestamp, indicator, and spacing
-                    // Row spacing is applied between elements (timestamp + spacing + indicator + spacing + text)
-                    width: Math.min(implicitWidth, logListView.width - root.timestampWidth - root.indicatorWidth - root.totalSpacing)
+                    // Use pre-calculated max width to avoid repeated computation
+                    width: Math.min(implicitWidth, root.logTextMaxWidth)
                 }
             }
         }
