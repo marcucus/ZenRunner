@@ -147,6 +147,7 @@ GlassCard {
                         required property int index
                         projectName: projects[index] ? projects[index].name : "Project " + (index + 1)
                         projectIndex: index
+                        activeProcesses: root.activeProcesses
                     }
                 }
             }

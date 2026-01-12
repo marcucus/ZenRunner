@@ -9,6 +9,13 @@ Item {
     
     property string projectName: "Console"
     property int projectIndex: 0
+    property var activeProcesses: ({})  // Passed from parent instead of traversing
+    
+    // Constants for better maintainability
+    readonly property int maxBufferLines: 2000
+    readonly property int batchRemovalCount: 500
+    readonly property int timestampWidth: 80
+    readonly property int indicatorWidth: 20
     
     // Function to clear logs
     function clearLogs() {
@@ -26,7 +33,7 @@ Item {
         
         function onProcessOutput(id, output, isStderr) {
             // Check if this output is for a process associated with this project
-            var activeProc = root.parent.parent.parent.parent.activeProcesses[id]
+            var activeProc = root.activeProcesses[id]
             if (activeProc && activeProc.projectIndex === projectIndex) {
                 // Split output into lines
                 var lines = output.split('\n')
@@ -39,14 +46,14 @@ Item {
         }
         
         function onProcessError(id, error) {
-            var activeProc = root.parent.parent.parent.parent.activeProcesses[id]
+            var activeProc = root.activeProcesses[id]
             if (activeProc && activeProc.projectIndex === projectIndex) {
                 addLogLine("❌ Error: " + error, true)
             }
         }
         
         function onProcessFinished(id, exitCode) {
-            var activeProc = root.parent.parent.parent.parent.activeProcesses[id]
+            var activeProc = root.activeProcesses[id]
             if (activeProc && activeProc.projectIndex === projectIndex) {
                 addLogLine("✅ Process finished with exit code: " + exitCode, false)
             }
@@ -55,11 +62,11 @@ Item {
     
     // Add a log line to the model
     function addLogLine(text, isError) {
-        // Limit buffer to 2000 lines for better performance
+        // Limit buffer to maxBufferLines for better performance
         // This is more aggressive than the 5000 line circular buffer to ensure UI responsiveness
-        if (logListModel.count >= 2000) {
-            // Remove oldest 500 lines at once to reduce frequent operations
-            for (var i = 0; i < 500; i++) {
+        if (logListModel.count >= maxBufferLines) {
+            // Remove oldest lines in batch to reduce frequent operations
+            for (var i = 0; i < batchRemovalCount; i++) {
                 logListModel.remove(0)
             }
         }
@@ -144,8 +151,8 @@ Item {
                     renderType: Text.NativeRendering
                     elide: Text.ElideNone
                     
-                    // Limit text width for performance
-                    width: Math.min(implicitWidth, logListView.width - 100)
+                    // Calculate available width based on actual component sizes
+                    width: Math.min(implicitWidth, logListView.width - root.timestampWidth - root.indicatorWidth)
                 }
             }
         }
@@ -180,10 +187,10 @@ Item {
         Text {
             id: lineCountText
             anchors.centerIn: parent
-            text: logListModel.count + " / 2000"
+            text: logListModel.count + " / " + root.maxBufferLines
             font.pixelSize: 9
             font.family: "monospace"
-            color: logListModel.count > 1800 ? "#f59e0b" : "#888888"
+            color: logListModel.count > (maxBufferLines * 0.9) ? "#f59e0b" : "#888888"
         }
     }
 }

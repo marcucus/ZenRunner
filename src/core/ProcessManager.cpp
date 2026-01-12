@@ -185,6 +185,8 @@ void AsyncProcess::onReadyReadStandardOutput() {
     // Read in chunks to prevent overwhelming the system with massive output
     // This prevents UI freezing when processes generate lots of output quickly
     constexpr qint64 MAX_CHUNK_SIZE = 65536; // 64KB chunks
+    int chunksProcessed = 0;
+    constexpr int CHUNKS_BEFORE_YIELD = 4; // Process 4 chunks (256KB) before yielding
     
     while (process_->bytesAvailable() > 0) {
         // Use move semantics to avoid copies
@@ -207,10 +209,13 @@ void AsyncProcess::onReadyReadStandardOutput() {
             }
         }
         
+        chunksProcessed++;
+        
         // Allow event loop to process other events to keep UI responsive
-        // Only process events if we have more data to read
-        if (process_->bytesAvailable() > 0) {
-            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 1);
+        // Only yield after processing multiple chunks to reduce context switching
+        if (process_->bytesAvailable() > 0 && chunksProcessed >= CHUNKS_BEFORE_YIELD) {
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 5);
+            chunksProcessed = 0;
         }
     }
 }
@@ -223,6 +228,8 @@ void AsyncProcess::onReadyReadStandardError() {
     // Read in chunks to prevent overwhelming the system with massive output
     // This prevents UI freezing when processes generate lots of output quickly
     constexpr qint64 MAX_CHUNK_SIZE = 65536; // 64KB chunks
+    int chunksProcessed = 0;
+    constexpr int CHUNKS_BEFORE_YIELD = 4; // Process 4 chunks (256KB) before yielding
     
     while (process_->bytesAvailable() > 0) {
         // Use move semantics to avoid copies
@@ -244,10 +251,13 @@ void AsyncProcess::onReadyReadStandardError() {
             }
         }
         
+        chunksProcessed++;
+        
         // Allow event loop to process other events to keep UI responsive
-        // Only process events if we have more data to read
-        if (process_->bytesAvailable() > 0) {
-            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 1);
+        // Only yield after processing multiple chunks to reduce context switching
+        if (process_->bytesAvailable() > 0 && chunksProcessed >= CHUNKS_BEFORE_YIELD) {
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 5);
+            chunksProcessed = 0;
         }
     }
 }
