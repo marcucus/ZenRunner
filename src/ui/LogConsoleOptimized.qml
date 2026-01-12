@@ -119,7 +119,6 @@ Item {
         
         // Performance optimizations
         cacheBuffer: 2000  // Cache more items for smoother scrolling
-        asynchronous: true  // Load delegates asynchronously
         maximumFlickVelocity: 8000  // Faster scrolling
         pixelAligned: true  // Pixel-perfect rendering
         
