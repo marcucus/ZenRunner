@@ -162,6 +162,19 @@ private:
      * @param isStderr Whether to process stderr (true) or stdout (false)
      */
     void processChunkedOutput(bool isStderr);
+    
+#ifdef Q_OS_UNIX
+    /**
+     * @brief Kill the entire process group with the specified signal
+     * 
+     * Sends a signal to the process group. If the process group doesn't exist
+     * or the call fails, falls back to Qt's process termination methods.
+     * 
+     * @param signal The signal to send (e.g., SIGTERM, SIGKILL)
+     * @return true if the signal was sent successfully, false otherwise
+     */
+    bool killProcessGroup(int signal);
+#endif
 
     ProcessConfig config_;
     std::unique_ptr<QProcess> process_;
