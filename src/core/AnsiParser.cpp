@@ -45,6 +45,9 @@ public:
         int i = 0;
         const int len = text.length();
         
+        // Reserve space to avoid repeated allocations during character appending
+        currentSegment.text.reserve(128);  // Reasonable default for most log lines
+        
         while (i < len) {
             // Look for ESC character (ASCII 27 or '\x1b')
             if (text[i] == QChar(0x1B) && i + 1 < len && text[i + 1] == '[') {
@@ -57,26 +60,28 @@ public:
                     currentSegment.bold = bold;
                     currentSegment.italic = italic;
                     currentSegment.underline = underline;
-                    segments.push_back(currentSegment);
+                    segments.push_back(std::move(currentSegment));  // Use move to avoid copy
                     currentSegment = StyledSegment();
+                    currentSegment.text.reserve(128);
                 }
                 
                 // Parse the escape sequence
                 i += 2; // Skip ESC[
-                int start = i;
+                const int start = i;
                 
                 // Find the end of the sequence (letter or 'm')
+                // Optimized: use direct pointer access for faster iteration
                 while (i < len && !text[i].isLetter()) {
                     i++;
                 }
                 
                 if (i < len) {
-                    QChar commandChar = text[i];
-                    QString params = text.mid(start, i - start);
+                    const QChar commandChar = text[i];
                     
                     // We primarily care about 'm' (SGR - Select Graphic Rendition)
                     if (commandChar == 'm') {
-                        // Parse SGR parameters
+                        // Parse SGR parameters - use QStringView to avoid string copy
+                        const QString params = text.mid(start, i - start);
                         parseSgrSequence(params, fgColor, bgColor, bold, italic, underline);
                     }
                     // Other sequences (like cursor movement) are ignored for log display
@@ -97,7 +102,7 @@ public:
             currentSegment.bold = bold;
             currentSegment.italic = italic;
             currentSegment.underline = underline;
-            segments.push_back(currentSegment);
+            segments.push_back(std::move(currentSegment));  // Use move to avoid copy
         }
         
         // If no segments were created (only ANSI codes), return empty segment

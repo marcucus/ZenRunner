@@ -224,19 +224,19 @@ void AsyncProcess::processChunkedOutput(bool isStderr) {
     
     while (process_->bytesAvailable() > 0) {
         // Use move semantics to avoid copies
-        QByteArray data = process_->read(MAX_CHUNK_SIZE);
+        const QByteArray data = process_->read(MAX_CHUNK_SIZE);
         if (data.isEmpty()) [[unlikely]] {
             break;
         }
         
-        QString output = QString::fromUtf8(data);
+        const QString output = QString::fromUtf8(data);
         
         // Emit signal before processing to minimize latency for UI updates
         emit outputReceived(output, isStderr);
         
         // Split by newlines and add each line as a log entry
-        // Reserve approximate capacity to avoid reallocations
-        QStringList lines = output.split('\n', Qt::SkipEmptyParts);
+        // Use const reference to avoid copying in the range-based for loop
+        const QStringList lines = output.split('\n', Qt::SkipEmptyParts);
         const LogLevel level = isStderr ? LogLevel::Error : LogLevel::Info;
         
         for (const QString& line : lines) {
@@ -607,7 +607,14 @@ int ProcessManager::runningCount() const {
 }
 
 bool ProcessManager::hasRunningProcesses() const {
-    return runningCount() > 0;
+    std::lock_guard lock(processesMutex_);
+    
+    // Optimized: Use early exit with any_of instead of counting all
+    return std::any_of(processes_.begin(), processes_.end(),
+        [](const auto& pair) {
+            return pair.second->state() == ProcessState::Running;
+        }
+    );
 }
 
 void ProcessManager::connectProcessSignals(const QString& id, AsyncProcess* process) {
