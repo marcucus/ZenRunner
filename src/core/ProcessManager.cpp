@@ -1,6 +1,7 @@
 #include "core/ProcessManager.h"
 #include <QDateTime>
 #include <QDir>
+#include <QCoreApplication>
 #include <algorithm>
 
 #ifdef Q_OS_UNIX
@@ -181,23 +182,35 @@ void AsyncProcess::onReadyReadStandardOutput() {
         return;
     }
     
-    // Use move semantics to avoid copies
-    QByteArray data = process_->readAllStandardOutput();
-    if (data.isEmpty()) [[unlikely]] {
-        return;
-    }
+    // Read in chunks to prevent overwhelming the system with massive output
+    // This prevents UI freezing when processes generate lots of output quickly
+    constexpr qint64 MAX_CHUNK_SIZE = 65536; // 64KB chunks
     
-    QString output = QString::fromUtf8(data);
-    
-    // Emit signal before processing to minimize latency for UI updates
-    emit outputReceived(output, false);
-    
-    // Split by newlines and add each line as a log entry
-    // Reserve approximate capacity to avoid reallocations
-    QStringList lines = output.split('\n', Qt::SkipEmptyParts);
-    for (const QString& line : lines) {
-        if (!line.trimmed().isEmpty()) [[likely]] {
-            addLogEntry(line, LogLevel::Info, false);
+    while (process_->bytesAvailable() > 0) {
+        // Use move semantics to avoid copies
+        QByteArray data = process_->read(MAX_CHUNK_SIZE);
+        if (data.isEmpty()) [[unlikely]] {
+            break;
+        }
+        
+        QString output = QString::fromUtf8(data);
+        
+        // Emit signal before processing to minimize latency for UI updates
+        emit outputReceived(output, false);
+        
+        // Split by newlines and add each line as a log entry
+        // Reserve approximate capacity to avoid reallocations
+        QStringList lines = output.split('\n', Qt::SkipEmptyParts);
+        for (const QString& line : lines) {
+            if (!line.trimmed().isEmpty()) [[likely]] {
+                addLogEntry(line, LogLevel::Info, false);
+            }
+        }
+        
+        // Allow event loop to process other events to keep UI responsive
+        // Only process events if we have more data to read
+        if (process_->bytesAvailable() > 0) {
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 1);
         }
     }
 }
@@ -207,22 +220,34 @@ void AsyncProcess::onReadyReadStandardError() {
         return;
     }
     
-    // Use move semantics to avoid copies
-    QByteArray data = process_->readAllStandardError();
-    if (data.isEmpty()) [[unlikely]] {
-        return;
-    }
+    // Read in chunks to prevent overwhelming the system with massive output
+    // This prevents UI freezing when processes generate lots of output quickly
+    constexpr qint64 MAX_CHUNK_SIZE = 65536; // 64KB chunks
     
-    QString output = QString::fromUtf8(data);
-    
-    // Emit signal before processing to minimize latency for UI updates
-    emit outputReceived(output, true);
-    
-    // Split by newlines and add each line as a log entry
-    QStringList lines = output.split('\n', Qt::SkipEmptyParts);
-    for (const QString& line : lines) {
-        if (!line.trimmed().isEmpty()) [[likely]] {
-            addLogEntry(line, LogLevel::Error, true);
+    while (process_->bytesAvailable() > 0) {
+        // Use move semantics to avoid copies
+        QByteArray data = process_->read(MAX_CHUNK_SIZE);
+        if (data.isEmpty()) [[unlikely]] {
+            break;
+        }
+        
+        QString output = QString::fromUtf8(data);
+        
+        // Emit signal before processing to minimize latency for UI updates
+        emit outputReceived(output, true);
+        
+        // Split by newlines and add each line as a log entry
+        QStringList lines = output.split('\n', Qt::SkipEmptyParts);
+        for (const QString& line : lines) {
+            if (!line.trimmed().isEmpty()) [[likely]] {
+                addLogEntry(line, LogLevel::Error, true);
+            }
+        }
+        
+        // Allow event loop to process other events to keep UI responsive
+        // Only process events if we have more data to read
+        if (process_->bytesAvailable() > 0) {
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 1);
         }
     }
 }

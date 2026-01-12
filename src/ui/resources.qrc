@@ -6,6 +6,7 @@
         <file>Dashboard.qml</file>
         <file>ProjectView.qml</file>
         <file>LogConsole.qml</file>
+        <file>LogConsoleOptimized.qml</file>
         <file>WorkspaceManager.qml</file>
         <file>WorkspaceDialog.qml</file>
         <file>Statistics.qml</file>

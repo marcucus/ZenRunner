@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import "./components"
 
 // Vue multi-terminaux avec tabs pour les projets d'un workspace
+// Optimisé pour utiliser ListView au lieu de TextEdit pour des performances maximales
 Item {
     id: root
     
@@ -12,107 +13,16 @@ Item {
     property int currentProjectIndex: 0
     property var activeProcesses: ({})
     
-    // Map pour stocker les outputs de chaque projet
-    property var projectOutputs: ({})
-    property var pendingUpdates: ({})
-    property int maxBufferLines: 500
+    // Map pour stocker les LogViewModels de chaque projet
+    property var projectLogModels: ({})
     
-    // Timer pour batch les updates (réduit les ralentissements)
-    Timer {
-        id: updateTimer
-        interval: 250
-        repeat: false
-        onTriggered: {
-            flushPendingUpdates()
+    // Fonction pour obtenir ou créer un LogViewModel pour un projet
+    function getOrCreateLogModel(projectIndex) {
+        if (!projectLogModels[projectIndex]) {
+            // Le LogViewModel sera créé par le composant LogConsoleOptimized
+            projectLogModels[projectIndex] = null
         }
-    }
-    
-    // Connections pour écouter les sorties des processus
-    Connections {
-        target: processManager
-        
-        function onProcessOutput(id, output) {
-            if (activeProcesses[id]) {
-                var projectIndex = activeProcesses[id].projectIndex
-                queueOutputUpdate(projectIndex, output)
-            }
-        }
-        
-        function onProcessError(id, error) {
-            if (activeProcesses[id]) {
-                var projectIndex = activeProcesses[id].projectIndex
-                queueOutputUpdate(projectIndex, "\n❌ Error: " + error + "\n")
-            }
-        }
-        
-        function onProcessFinished(id, exitCode) {
-            if (activeProcesses[id]) {
-                var projectIndex = activeProcesses[id].projectIndex
-                queueOutputUpdate(projectIndex, "\n✅ Process finished with exit code: " + exitCode + "\n")
-            }
-        }
-    }
-    
-    function queueOutputUpdate(projectIndex, text) {
-        if (!pendingUpdates[projectIndex]) {
-            pendingUpdates[projectIndex] = ""
-        }
-        pendingUpdates[projectIndex] += text
-        
-        if (!updateTimer.running) {
-            updateTimer.start()
-        }
-    }
-    
-    function flushPendingUpdates() {
-        for (var projectIndex in pendingUpdates) {
-            if (pendingUpdates[projectIndex]) {
-                appendOutputToProject(parseInt(projectIndex), pendingUpdates[projectIndex])
-                pendingUpdates[projectIndex] = ""
-            }
-        }
-    }
-    
-    function appendOutputToProject(projectIndex, text) {
-        if (!projectOutputs[projectIndex]) {
-            projectOutputs[projectIndex] = "Terminal ready. Run a script to see output...\n"
-        }
-        
-        projectOutputs[projectIndex] += text
-        
-        // Limiter la taille du buffer pour éviter les ralentissements
-        // Ne faire le trim que si on dépasse significativement la limite
-        if (projectOutputs[projectIndex].length > maxBufferLines * 120) {
-            var lines = projectOutputs[projectIndex].split('\n')
-            if (lines.length > maxBufferLines) {
-                lines = lines.slice(lines.length - maxBufferLines)
-                projectOutputs[projectIndex] = lines.join('\n')
-            }
-        }
-        
-        // Mettre à jour seulement si c'est le projet visible
-        if (projectIndex === currentProjectIndex) {
-            terminalOutput.text = projectOutputs[projectIndex]
-            // Auto-scroll seulement si on est proche du bas
-            if (terminalOutput.length - terminalOutput.cursorPosition < 500) {
-                Qt.callLater(function() {
-                    terminalOutput.cursorPosition = terminalOutput.length
-                })
-            }
-        }
-    }
-    
-    function appendOutput(text) {
-        appendOutputToProject(currentProjectIndex, text)
-    }
-    
-    // Mettre à jour l'affichage quand on change de projet
-    onCurrentProjectIndexChanged: {
-        if (!projectOutputs[currentProjectIndex]) {
-            projectOutputs[currentProjectIndex] = "Terminal ready. Run a script to see output...\n"
-        }
-        terminalOutput.text = projectOutputs[currentProjectIndex]
-        terminalOutput.cursorPosition = terminalOutput.length
+        return projectLogModels[projectIndex]
     }
 
 GlassCard {
@@ -177,10 +87,10 @@ GlassCard {
                 accentColor: "#ef4444"
                 width: 90
                 onClicked: {
-                    projectOutputs[currentProjectIndex] = ""
-                    terminalOutput.text = ""
-                    var temp = projectOutputs
-                    projectOutputs = temp
+                    // Clear the current project's log buffer
+                    if (logConsoleRepeater.itemAt(currentProjectIndex)) {
+                        logConsoleRepeater.itemAt(currentProjectIndex).clearLogs()
+                    }
                 }
             }
         }
@@ -205,15 +115,15 @@ GlassCard {
                 accentColor: "#ef4444"
                 width: 90
                 onClicked: {
-                    projectOutputs[currentProjectIndex] = ""
-                    terminalOutput.text = ""
-                    var temp = projectOutputs
-                    projectOutputs = temp
+                    // Clear the current project's log buffer
+                    if (logConsoleRepeater.itemAt(currentProjectIndex)) {
+                        logConsoleRepeater.itemAt(currentProjectIndex).clearLogs()
+                    }
                 }
             }
         }
         
-        // Zone de sortie du terminal
+        // Zone de sortie du terminal - Utilise ListView pour de meilleures performances
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -222,37 +132,22 @@ GlassCard {
             border.width: 1
             border.color: Qt.rgba(1, 1, 1, 0.1)
             
-            ScrollView {
+            // Utilise un StackLayout pour afficher le bon terminal
+            StackLayout {
                 anchors.fill: parent
                 anchors.margins: 8
-                clip: true
+                currentIndex: currentProjectIndex
                 
-                ScrollBar.vertical.policy: ScrollBar.AlwaysOn
-                
-                TextEdit {
-                    id: terminalOutput
-                    width: parent.width
-                    readOnly: true
-                    selectByMouse: true
-                    wrapMode: TextEdit.NoWrap
-                    textFormat: TextEdit.PlainText
-                    renderType: Text.NativeRendering
+                // Crée un LogConsoleOptimized pour chaque projet
+                Repeater {
+                    id: logConsoleRepeater
+                    model: Math.max(1, projects.length)
                     
-                    // Désactiver les animations de cursor
-                    cursorVisible: false
-                    
-                    // Optimisations de performance
-                    persistentSelection: false
-                    
-                    font.family: "Menlo, Monaco, Courier"
-                    font.pixelSize: 10
-                    color: "#00ff00"
-                    
-                    text: "Terminal ready. Run a script to see output...\n"
-                    
-                    // Style du texte sélectionné
-                    selectionColor: Qt.rgba(0.3, 0.6, 1.0, 0.5)
-                    selectedTextColor: "#ffffff"
+                    LogConsoleOptimized {
+                        required property int index
+                        projectName: projects[index] ? projects[index].name : "Project " + (index + 1)
+                        projectIndex: index
+                    }
                 }
             }
             
@@ -318,7 +213,7 @@ GlassCard {
                 Text {
                     text: isWorkspace ? 
                         "Click project tabs above to switch between terminal outputs" :
-                        "Terminal output will appear here when you run a script"
+                        "Terminal output uses optimized ListView for smooth performance"
                     font.pixelSize: 11
                     color: "#888888"
                 }
