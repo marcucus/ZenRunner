@@ -7,6 +7,7 @@
 #ifdef Q_OS_UNIX
 #include <signal.h>
 #include <sys/types.h>
+#include <unistd.h>
 #endif
 
 namespace ZenRunner {
@@ -44,6 +45,15 @@ AsyncProcess::AsyncProcess(ProcessConfig config, QObject* parent)
         process_->setProcessChannelMode(QProcess::ForwardedChannels);
     }
     
+#ifdef Q_OS_UNIX
+    // Create a new process group on Unix systems using setChildProcessModifier
+    // This allows us to kill all child processes when stopping
+    process_->setChildProcessModifier([](){ 
+        // Create a new process group
+        ::setpgid(0, 0);
+    });
+#endif
+    
     // Connect signals for asynchronous operation
     // Use Qt::DirectConnection for same-thread critical paths to minimize latency
     connect(process_.get(), &QProcess::readyReadStandardOutput,
@@ -71,8 +81,16 @@ AsyncProcess::~AsyncProcess() {
         // Disconnect signals to prevent callbacks during destruction
         process_->disconnect();
         
+#ifdef Q_OS_UNIX
+        // Kill the entire process group
+        const qint64 pid = process_->processId();
+        if (pid > 0) {
+            ::killpg(static_cast<pid_t>(pid), SIGTERM);
+        }
+#else
         // Send termination signal - the process will be killed by OS cleanup
         process_->terminate();
+#endif
         
         // Note: We intentionally don't wait here to avoid blocking.
         // The OS will clean up the process. If immediate cleanup is needed,
@@ -117,8 +135,17 @@ void AsyncProcess::stop(int timeoutMs) {
     setState(ProcessState::Stopping);
     terminationRequested_ = true;
     
-    // Try graceful termination first
+#ifdef Q_OS_UNIX
+    // Kill the entire process group to ensure all child processes are terminated
+    const qint64 pid = process_->processId();
+    if (pid > 0) {
+        // Send SIGTERM to the process group
+        ::killpg(static_cast<pid_t>(pid), SIGTERM);
+    }
+#else
+    // On Windows, use the default Qt termination
     process_->terminate();
+#endif
     
     // Start timer for forceful kill if needed
     terminationTimer_->start(timeoutMs);
@@ -157,7 +184,15 @@ void AsyncProcess::writeInput(const QString& data) {
 void AsyncProcess::forceKillImmediate() {
     // Non-blocking immediate kill - no waiting
     if (process_ && process_->state() != QProcess::NotRunning) {
+#ifdef Q_OS_UNIX
+        // Kill the entire process group immediately with SIGKILL
+        const qint64 pid = process_->processId();
+        if (pid > 0) {
+            ::killpg(static_cast<pid_t>(pid), SIGKILL);
+        }
+#else
         process_->kill();
+#endif
     }
 }
 
@@ -286,7 +321,15 @@ void AsyncProcess::onTerminationTimeout() {
     if (process_ && process_->state() != QProcess::NotRunning) [[unlikely]] {
         addLogEntry("Process did not terminate gracefully, forcing kill",
                    LogLevel::Warning, true);
+#ifdef Q_OS_UNIX
+        // Kill the entire process group with SIGKILL
+        const qint64 pid = process_->processId();
+        if (pid > 0) {
+            ::killpg(static_cast<pid_t>(pid), SIGKILL);
+        }
+#else
         process_->kill();
+#endif
     }
 }
 
