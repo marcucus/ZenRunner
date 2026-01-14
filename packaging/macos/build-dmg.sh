@@ -17,7 +17,10 @@ NC='\033[0m'
 # Configuration
 APP_NAME="ZenRunner"
 VERSION="1.0.0"
-BUILD_DIR="build"
+# Get project root directory (two levels up from this script)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+BUILD_DIR="$PROJECT_ROOT/build"
 BUNDLE_NAME="${APP_NAME}.app"
 DMG_NAME="${APP_NAME}-${VERSION}.dmg"
 VOLUME_NAME="${APP_NAME} ${VERSION}"
@@ -118,23 +121,61 @@ create_app_bundle() {
     # Copy Qt frameworks and plugins
     print_info "Copying Qt dependencies..."
     
-    # Use macdeployqt if available
+    # Find macdeployqt and Qt installation
+    local macdeployqt_path=""
+    local qt_path=""
+    
     if command -v macdeployqt &> /dev/null; then
-        print_info "Running macdeployqt..."
-        macdeployqt "$bundle_dir" -verbose=1
+        macdeployqt_path="macdeployqt"
+        qt_path="$(dirname $(dirname $(which macdeployqt)))"
     elif [ -d "/opt/homebrew/opt/qt@6/bin" ]; then
-        print_info "Running macdeployqt from Homebrew..."
-        /opt/homebrew/opt/qt@6/bin/macdeployqt "$bundle_dir" -verbose=1
+        macdeployqt_path="/opt/homebrew/opt/qt@6/bin/macdeployqt"
+        qt_path="/opt/homebrew/opt/qt@6"
     elif [ -d "/usr/local/opt/qt@6/bin" ]; then
-        print_info "Running macdeployqt from Homebrew (Intel)..."
-        /usr/local/opt/qt@6/bin/macdeployqt "$bundle_dir" -verbose=1
+        macdeployqt_path="/usr/local/opt/qt@6/bin/macdeployqt"
+        qt_path="/usr/local/opt/qt@6"
     else
         print_error "macdeployqt not found"
         print_info "Please install Qt 6 or add it to PATH"
         exit 1
     fi
     
+    print_info "Running macdeployqt from: $qt_path"
+    print_info "QML directory: $PROJECT_ROOT/src/ui"
+    
+    # Run macdeployqt with proper options
+    "$macdeployqt_path" "$bundle_dir" \
+        -qmldir="$PROJECT_ROOT/src/ui" \
+        -always-overwrite \
+        -verbose=1
+    
+    # Run macdeployqt again to fix any missing dependencies in plugins/frameworks
+    print_info "Running second pass to fix plugin dependencies..."
+    "$macdeployqt_path" "$bundle_dir" \
+        -always-overwrite \
+        -verbose=0
+    
     print_success "App bundle created: $bundle_dir"
+    
+    # Clean up rpaths to remove absolute Homebrew paths
+    print_info "Cleaning rpaths from executable..."
+    local exe="$bundle_dir/Contents/MacOS/$APP_NAME"
+    
+    # Remove all Homebrew rpaths
+    for rpath in $(otool -l "$exe" | grep -A2 LC_RPATH | grep path | awk '{print $2}' | grep homebrew); do
+        print_info "Removing rpath: $rpath"
+        install_name_tool -delete_rpath "$rpath" "$exe" 2>/dev/null || true
+    done
+    
+    # Ad-hoc sign the bundle for local testing (required on modern macOS)
+    print_info "Ad-hoc signing bundle (required for execution)..."
+    codesign --force --deep --sign - "$bundle_dir"
+    if [ $? -eq 0 ]; then
+        print_success "Bundle signed successfully"
+    else
+        print_error "Failed to sign bundle"
+        exit 1
+    fi
 }
 
 # Create DMG

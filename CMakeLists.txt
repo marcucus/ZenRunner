@@ -166,7 +166,7 @@ set(FACTORY_SOURCES
 )
 
 # Main executable
-add_executable(${PROJECT_NAME}
+add_executable(${PROJECT_NAME} MACOSX_BUNDLE
     src/main.cpp
     ${CORE_SOURCES}
     ${PLATFORM_SOURCES}
@@ -337,6 +337,16 @@ if(APPLE)
         "-framework AppKit"
         "-framework Foundation"
     )
+    
+    # Configure macOS Bundle properties
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/packaging/macos/Info.plist"
+        MACOSX_BUNDLE_BUNDLE_NAME "${PROJECT_NAME}"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.zenrunner.app"
+        OUTPUT_NAME "${PROJECT_NAME}"
+    )
 endif()
 
 if(UNIX AND NOT APPLE)
@@ -371,13 +381,8 @@ install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION bin COMPONENT Runtime
 )
 
-# Install Qt dependencies on macOS
-if(APPLE)
-    install(CODE "
-        include(BundleUtilities)
-        fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}.app\" \"\" \"\")
-    " COMPONENT Runtime)
-endif()
+# Note: fixup_bundle removed for regular executables
+# For macOS bundle packaging, use CPack with productbuild or create a proper .app bundle
 
 # Install documentation
 install(FILES
