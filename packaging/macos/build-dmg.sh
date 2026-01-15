@@ -215,7 +215,7 @@ create_app_bundle() {
     # Fix plugin rpaths
     print_info "Fixing plugin rpaths..."
     if [ -d "$bundle_dir/Contents/PlugIns" ]; then
-        find "$bundle_dir/Contents/PlugIns" -name "*.dylib" -type f | while read plugin; do
+        find "$bundle_dir/Contents/PlugIns" -name "*.dylib" -type f -print0 | while IFS= read -r -d '' plugin; do
             # Remove Homebrew rpaths from plugins
             for rpath in $(otool -l "$plugin" | grep -A2 LC_RPATH | grep path | awk '{print $2}' | grep -E '(homebrew|local)' || true); do
                 install_name_tool -delete_rpath "$rpath" "$plugin" 2>/dev/null || true
@@ -237,7 +237,7 @@ create_app_bundle() {
         done
         
         # Also sign any standalone dylibs in Frameworks
-        find "$bundle_dir/Contents/Frameworks" -maxdepth 1 -name "*.dylib" -type f | while read lib; do
+        find "$bundle_dir/Contents/Frameworks" -maxdepth 1 -name "*.dylib" -type f -print0 | while IFS= read -r -d '' lib; do
             codesign --force --sign - "$lib" 2>/dev/null || true
         done
     fi
@@ -245,7 +245,7 @@ create_app_bundle() {
     # Sign plugins
     print_info "Signing plugins..."
     if [ -d "$bundle_dir/Contents/PlugIns" ]; then
-        find "$bundle_dir/Contents/PlugIns" -name "*.dylib" -type f | while read plugin; do
+        find "$bundle_dir/Contents/PlugIns" -name "*.dylib" -type f -print0 | while IFS= read -r -d '' plugin; do
             codesign --force --sign - "$plugin" 2>/dev/null || true
         done
     fi
@@ -396,7 +396,7 @@ sign_bundle() {
                 done
                 
                 # Also sign standalone dylibs
-                find "$bundle_dir/Contents/Frameworks" -maxdepth 1 -name "*.dylib" -type f | while read lib; do
+                find "$bundle_dir/Contents/Frameworks" -maxdepth 1 -name "*.dylib" -type f -print0 | while IFS= read -r -d '' lib; do
                     codesign --force --sign "Developer ID Application" \
                         --options runtime "$lib" 2>/dev/null || true
                 done
@@ -404,7 +404,7 @@ sign_bundle() {
             
             # Sign plugins
             if [ -d "$bundle_dir/Contents/PlugIns" ]; then
-                find "$bundle_dir/Contents/PlugIns" -name "*.dylib" -type f | while read plugin; do
+                find "$bundle_dir/Contents/PlugIns" -name "*.dylib" -type f -print0 | while IFS= read -r -d '' plugin; do
                     codesign --force --sign "Developer ID Application" \
                         --options runtime "$plugin" 2>/dev/null || true
                 done
