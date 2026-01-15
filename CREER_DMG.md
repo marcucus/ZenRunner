@@ -209,6 +209,26 @@ cd packaging/macos && ./build-dmg.sh
   cmake --build . --config Release
   ```
 
+### L'application crash au lancement après installation
+
+- **Cause** : Problème de rpaths ou de signature de code
+- **Solution** : Le script build-dmg.sh a été mis à jour pour:
+  - Supprimer les rpaths Homebrew absolus
+  - Ajouter les rpaths relatifs corrects (`@executable_path/../Frameworks`)
+  - Vérifier la présence de tous les frameworks Qt requis
+  - Signer correctement le bundle avec les bonnes options
+  
+  ```bash
+  # Vérifier les rpaths après création du bundle
+  otool -l build/ZenRunner.app/Contents/MacOS/ZenRunner | grep -A2 LC_RPATH
+  
+  # Vérifier les frameworks Qt présents
+  ls -la build/ZenRunner.app/Contents/Frameworks/
+  
+  # Vérifier la signature
+  codesign --verify --verbose build/ZenRunner.app
+  ```
+
 ## 📊 Taille Attendue
 
 - **Application non compressée** : ~20-30 MB

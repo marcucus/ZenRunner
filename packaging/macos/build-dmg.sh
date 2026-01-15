@@ -157,21 +157,102 @@ create_app_bundle() {
     
     print_success "App bundle created: $bundle_dir"
     
-    # Clean up rpaths to remove absolute Homebrew paths
-    print_info "Cleaning rpaths from executable..."
+    # Fix rpaths to remove absolute Homebrew paths and add proper relative paths
+    print_info "Fixing rpaths for executable..."
     local exe="$bundle_dir/Contents/MacOS/$APP_NAME"
     
     # Remove all Homebrew rpaths
-    for rpath in $(otool -l "$exe" | grep -A2 LC_RPATH | grep path | awk '{print $2}' | grep homebrew); do
+    for rpath in $(otool -l "$exe" | grep -A2 LC_RPATH | grep path | awk '{print $2}' | grep -E '(homebrew|local)' || true); do
         print_info "Removing rpath: $rpath"
         install_name_tool -delete_rpath "$rpath" "$exe" 2>/dev/null || true
     done
     
+    # Add proper rpath for bundled frameworks if not already present
+    if ! otool -l "$exe" | grep -A2 LC_RPATH | grep -q "@executable_path/../Frameworks"; then
+        print_info "Adding rpath: @executable_path/../Frameworks"
+        install_name_tool -add_rpath "@executable_path/../Frameworks" "$exe" || true
+    fi
+    
+    # Verify Qt frameworks are present
+    print_info "Verifying Qt frameworks..."
+    local frameworks_dir="$bundle_dir/Contents/Frameworks"
+    local required_frameworks=("QtCore" "QtGui" "QtQuick" "QtWidgets" "QtQml")
+    local missing_frameworks=0
+    
+    for framework in "${required_frameworks[@]}"; do
+        if [ ! -d "$frameworks_dir/${framework}.framework" ]; then
+            print_error "Missing framework: ${framework}.framework"
+            missing_frameworks=1
+        else
+            print_info "✓ Found ${framework}.framework"
+        fi
+    done
+    
+    if [ $missing_frameworks -eq 1 ]; then
+        print_error "Some Qt frameworks are missing. Please check your Qt installation."
+        exit 1
+    fi
+    
+    # Fix framework rpaths and install names
+    print_info "Fixing framework rpaths..."
+    for framework_dir in "$frameworks_dir"/*.framework; do
+        if [ -d "$framework_dir" ]; then
+            local framework_name=$(basename "$framework_dir" .framework)
+            local framework_exec="$framework_dir/Versions/A/$framework_name"
+            
+            if [ -f "$framework_exec" ]; then
+                # Update the framework's ID
+                install_name_tool -id "@rpath/${framework_name}.framework/Versions/A/$framework_name" "$framework_exec" 2>/dev/null || true
+                
+                # Remove any Homebrew rpaths from frameworks
+                for rpath in $(otool -l "$framework_exec" | grep -A2 LC_RPATH | grep path | awk '{print $2}' | grep -E '(homebrew|local)' || true); do
+                    install_name_tool -delete_rpath "$rpath" "$framework_exec" 2>/dev/null || true
+                done
+            fi
+        fi
+    done
+    
+    # Fix plugin rpaths
+    print_info "Fixing plugin rpaths..."
+    if [ -d "$bundle_dir/Contents/PlugIns" ]; then
+        find "$bundle_dir/Contents/PlugIns" -name "*.dylib" -type f | while read plugin; do
+            # Remove Homebrew rpaths from plugins
+            for rpath in $(otool -l "$plugin" | grep -A2 LC_RPATH | grep path | awk '{print $2}' | grep -E '(homebrew|local)' || true); do
+                install_name_tool -delete_rpath "$rpath" "$plugin" 2>/dev/null || true
+            done
+        done
+    fi
+    
     # Ad-hoc sign the bundle for local testing (required on modern macOS)
     print_info "Ad-hoc signing bundle (required for execution)..."
-    codesign --force --deep --sign - "$bundle_dir"
+    
+    # First, sign all libraries and frameworks
+    print_info "Signing frameworks and plugins..."
+    if [ -d "$bundle_dir/Contents/Frameworks" ]; then
+        find "$bundle_dir/Contents/Frameworks" -name "*.dylib" -o -name "*.framework" | while read lib; do
+            codesign --force --sign - "$lib" 2>/dev/null || true
+        done
+    fi
+    
+    if [ -d "$bundle_dir/Contents/PlugIns" ]; then
+        find "$bundle_dir/Contents/PlugIns" -name "*.dylib" | while read plugin; do
+            codesign --force --sign - "$plugin" 2>/dev/null || true
+        done
+    fi
+    
+    # Finally, sign the entire bundle with proper options
+    codesign --force --deep --sign - --options runtime "$bundle_dir"
     if [ $? -eq 0 ]; then
         print_success "Bundle signed successfully"
+        
+        # Verify the signature
+        print_info "Verifying signature..."
+        codesign --verify --verbose "$bundle_dir"
+        if [ $? -eq 0 ]; then
+            print_success "Signature verified"
+        else
+            print_error "Signature verification failed"
+        fi
     else
         print_error "Failed to sign bundle"
         exit 1
@@ -291,14 +372,46 @@ sign_bundle() {
         
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             local bundle_dir="$BUILD_DIR/$BUNDLE_NAME"
+            local entitlements="$SCRIPT_DIR/entitlements.plist"
             
-            print_info "Signing application..."
-            codesign --force --deep --sign "Developer ID Application" "$bundle_dir"
+            print_info "Signing application with Developer ID and entitlements..."
+            
+            # Sign all frameworks and libraries first
+            if [ -d "$bundle_dir/Contents/Frameworks" ]; then
+                find "$bundle_dir/Contents/Frameworks" -name "*.dylib" -or -name "*.framework" | while read lib; do
+                    codesign --force --sign "Developer ID Application" --options runtime "$lib" 2>/dev/null || true
+                done
+            fi
+            
+            if [ -d "$bundle_dir/Contents/PlugIns" ]; then
+                find "$bundle_dir/Contents/PlugIns" -name "*.dylib" | while read plugin; do
+                    codesign --force --sign "Developer ID Application" --options runtime "$plugin" 2>/dev/null || true
+                done
+            fi
+            
+            # Sign the main executable with entitlements
+            codesign --force --sign "Developer ID Application" \
+                --options runtime \
+                --entitlements "$entitlements" \
+                "$bundle_dir/Contents/MacOS/$APP_NAME"
+            
+            # Sign the entire bundle
+            codesign --force --sign "Developer ID Application" \
+                --options runtime \
+                --entitlements "$entitlements" \
+                "$bundle_dir"
             
             print_info "Verifying signature..."
             codesign --verify --verbose "$bundle_dir"
             
-            print_success "Application signed successfully"
+            if [ $? -eq 0 ]; then
+                print_success "Application signed successfully"
+                
+                # Display signing info
+                codesign -dv --verbose=4 "$bundle_dir" 2>&1 | grep -E "(Identifier|Authority|TeamIdentifier)" || true
+            else
+                print_error "Signature verification failed"
+            fi
         else
             print_info "Skipping code signing"
         fi
