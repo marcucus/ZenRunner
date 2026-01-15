@@ -429,6 +429,27 @@ main() {
     check_platform
     check_build
     create_app_bundle
+    
+    # Verify the bundle before signing/packaging
+    print_header "Verifying Bundle"
+    local bundle_dir="$BUILD_DIR/$BUNDLE_NAME"
+    if [ -f "$SCRIPT_DIR/verify-bundle.sh" ]; then
+        print_info "Running bundle verification..."
+        if "$SCRIPT_DIR/verify-bundle.sh" "$bundle_dir"; then
+            print_success "Bundle verification passed"
+        else
+            print_warning "Bundle verification found issues - see output above"
+            read -p "Continue anyway? (y/N): " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                print_error "Aborted by user"
+                exit 1
+            fi
+        fi
+    else
+        print_info "Verification script not found, skipping verification"
+    fi
+    
     sign_bundle
     create_dmg
     
@@ -440,6 +461,9 @@ main() {
     echo "  1. Test the DMG: open $BUILD_DIR/$DMG_NAME"
     echo "  2. Mount and drag ZenRunner to Applications"
     echo "  3. Launch from Applications folder"
+    echo ""
+    print_info "Verification:"
+    echo "  - Run: $SCRIPT_DIR/verify-bundle.sh $BUILD_DIR/$BUNDLE_NAME"
     echo ""
     print_info "For distribution:"
     echo "  - Code signing recommended (requires Apple Developer account)"

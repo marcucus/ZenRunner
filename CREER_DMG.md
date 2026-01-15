@@ -262,9 +262,11 @@ Pour plus de détails :
 
 En cas de problème :
 
-1. Consulter [docs/PACKAGING.md](../../docs/PACKAGING.md)
-2. Vérifier les logs pendant la création du DMG
-3. Ouvrir une issue : [GitHub Issues](https://github.com/marcucus/ZenRunner/issues)
+1. **Consulter le guide de diagnostic**: [DIAGNOSTIC_DMG.md](packaging/macos/DIAGNOSTIC_DMG.md) - Guide complet pour diagnostiquer et résoudre les problèmes de crash
+2. **Consulter la documentation**: [docs/PACKAGING.md](../../docs/PACKAGING.md)
+3. **Vérifier les logs** pendant la création du DMG
+4. **Tester sur une machine différente** pour isoler les problèmes d'environnement
+5. **Ouvrir une issue**: [GitHub Issues](https://github.com/marcucus/ZenRunner/issues) avec les logs et informations de diagnostic
 
 ---
 
