@@ -226,16 +226,26 @@ create_app_bundle() {
     # Ad-hoc sign the bundle for local testing (required on modern macOS)
     print_info "Ad-hoc signing bundle (required for execution)..."
     
-    # First, sign all libraries and frameworks
-    print_info "Signing frameworks and plugins..."
+    # First, sign all frameworks (sign the actual executable inside)
+    print_info "Signing frameworks..."
     if [ -d "$bundle_dir/Contents/Frameworks" ]; then
-        find "$bundle_dir/Contents/Frameworks" -name "*.dylib" -o -name "*.framework" | while read lib; do
+        for framework_dir in "$bundle_dir/Contents/Frameworks"/*.framework; do
+            if [ -d "$framework_dir" ]; then
+                # Sign the framework itself (codesign handles framework bundles)
+                codesign --force --sign - "$framework_dir" 2>/dev/null || true
+            fi
+        done
+        
+        # Also sign any standalone dylibs in Frameworks
+        find "$bundle_dir/Contents/Frameworks" -maxdepth 1 -name "*.dylib" -type f | while read lib; do
             codesign --force --sign - "$lib" 2>/dev/null || true
         done
     fi
     
+    # Sign plugins
+    print_info "Signing plugins..."
     if [ -d "$bundle_dir/Contents/PlugIns" ]; then
-        find "$bundle_dir/Contents/PlugIns" -name "*.dylib" | while read plugin; do
+        find "$bundle_dir/Contents/PlugIns" -name "*.dylib" -type f | while read plugin; do
             codesign --force --sign - "$plugin" 2>/dev/null || true
         done
     fi
@@ -376,16 +386,27 @@ sign_bundle() {
             
             print_info "Signing application with Developer ID and entitlements..."
             
-            # Sign all frameworks and libraries first
+            # Sign all frameworks first (codesign handles framework bundles properly)
             if [ -d "$bundle_dir/Contents/Frameworks" ]; then
-                find "$bundle_dir/Contents/Frameworks" -name "*.dylib" -or -name "*.framework" | while read lib; do
-                    codesign --force --sign "Developer ID Application" --options runtime "$lib" 2>/dev/null || true
+                for framework_dir in "$bundle_dir/Contents/Frameworks"/*.framework; do
+                    if [ -d "$framework_dir" ]; then
+                        codesign --force --sign "Developer ID Application" \
+                            --options runtime "$framework_dir" 2>/dev/null || true
+                    fi
+                done
+                
+                # Also sign standalone dylibs
+                find "$bundle_dir/Contents/Frameworks" -maxdepth 1 -name "*.dylib" -type f | while read lib; do
+                    codesign --force --sign "Developer ID Application" \
+                        --options runtime "$lib" 2>/dev/null || true
                 done
             fi
             
+            # Sign plugins
             if [ -d "$bundle_dir/Contents/PlugIns" ]; then
-                find "$bundle_dir/Contents/PlugIns" -name "*.dylib" | while read plugin; do
-                    codesign --force --sign "Developer ID Application" --options runtime "$plugin" 2>/dev/null || true
+                find "$bundle_dir/Contents/PlugIns" -name "*.dylib" -type f | while read plugin; do
+                    codesign --force --sign "Developer ID Application" \
+                        --options runtime "$plugin" 2>/dev/null || true
                 done
             fi
             

@@ -151,15 +151,17 @@ if [ -f "$EXECUTABLE" ]; then
         print_error "No rpaths found"
     else
         print_success "Rpaths found:"
-        echo "$rpaths" | while read rpath; do
-            echo "    $rpath"
-            
-            if echo "$rpath" | grep -q "@executable_path/../Frameworks"; then
-                print_success "  Correct rpath for bundled frameworks"
-            elif echo "$rpath" | grep -qE "(homebrew|local)"; then
-                print_error "  Absolute Homebrew/local path detected (will not work on other machines)"
+        while IFS= read -r rpath; do
+            if [ -n "$rpath" ]; then
+                echo "    $rpath"
+                
+                if echo "$rpath" | grep -q "@executable_path/../Frameworks"; then
+                    print_success "  Correct rpath for bundled frameworks"
+                elif echo "$rpath" | grep -qE "(homebrew|local)"; then
+                    print_error "  Absolute Homebrew/local path detected (will not work on other machines)"
+                fi
             fi
-        done
+        done <<< "$rpaths"
     fi
 else
     print_error "Cannot check rpaths - executable not found"
@@ -171,7 +173,7 @@ if [ -f "$EXECUTABLE" ]; then
     deps=$(otool -L "$EXECUTABLE" | tail -n +2)
     
     has_absolute_paths=0
-    echo "$deps" | while read -r line; do
+    while read -r line; do
         lib=$(echo "$line" | awk '{print $1}')
         
         if echo "$lib" | grep -q "@rpath"; then
@@ -187,7 +189,7 @@ if [ -f "$EXECUTABLE" ]; then
             print_error "Absolute path dependency: $lib"
             has_absolute_paths=1
         fi
-    done
+    done <<< "$deps"
     
     if [ $has_absolute_paths -eq 0 ]; then
         print_success "All dependencies use relative paths or system libraries"
