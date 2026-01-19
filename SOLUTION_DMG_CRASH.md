@@ -4,14 +4,54 @@
 
 Lorsque l'utilisateur créait un DMG et installait l'application ZenRunner, celle-ci crashait et ne se lançait pas.
 
+## Dernière Mise à Jour (Janvier 2026)
+
+**Problème Critique Identifié**: Lorsque CMake crée le bundle avec `MACOSX_BUNDLE`, le script `build-dmg.sh` détectait le bundle existant mais **ne copiait pas les frameworks Qt** car il sautait l'étape `macdeployqt`. L'application ne pouvait donc pas se lancer car les dépendances Qt étaient manquantes.
+
+**Solution**: Le script `build-dmg.sh` exécute maintenant `macdeployqt` même quand le bundle existe déjà, garantissant que tous les frameworks et plugins Qt sont correctement copiés dans le bundle avant la création du DMG.
+
 ## Causes Identifiées
 
-1. **Rpaths Manquants**: Après avoir supprimé les chemins absolus Homebrew, l'application ne pouvait plus trouver les frameworks Qt
-2. **Signature de Code Incorrecte**: Les entitlements hardened runtime dans Info.plist causaient des crashes avec la signature ad-hoc
-3. **Chemins Absolus**: Les frameworks Qt contenaient des chemins absolus vers Homebrew qui ne fonctionnent pas sur d'autres machines
-4. **Absence de Vérification**: Les problèmes n'étaient découverts qu'après l'installation
+1. **Frameworks Qt Manquants**: Le script détectait le bundle CMake mais ne copiait pas les frameworks Qt (NOUVEAU - Fix Jan 2026)
+2. **Rpaths Manquants**: Après avoir supprimé les chemins absolus Homebrew, l'application ne pouvait plus trouver les frameworks Qt
+3. **Signature de Code Incorrecte**: Les entitlements hardened runtime dans Info.plist causaient des crashes avec la signature ad-hoc
+4. **Chemins Absolus**: Les frameworks Qt contenaient des chemins absolus vers Homebrew qui ne fonctionnent pas sur d'autres machines
+5. **Absence de Vérification**: Les problèmes n'étaient découverts qu'après l'installation
 
 ## Solutions Implémentées
+
+### 0. Déploiement des Frameworks Qt (NOUVEAU - Janvier 2026)
+
+**Problème**:
+```bash
+# Quand le bundle CMake existait, le script sautait macdeployqt
+if [ -n "$APP_BUNDLE_PATH" ]; then
+    # Pas de macdeployqt = pas de frameworks Qt!
+    fix_bundle_rpaths "$bundle_dir"
+    sign_bundle "$bundle_dir"
+    return 0
+fi
+```
+
+**Solution**:
+```bash
+# Maintenant, macdeployqt est TOUJOURS exécuté
+if [ -n "$APP_BUNDLE_PATH" ]; then
+    cp -R "$APP_BUNDLE_PATH" "$bundle_dir"
+    
+    # NOUVEAU: Déployer les frameworks Qt
+    macdeployqt "$bundle_dir" \
+        -qmldir="$PROJECT_ROOT/src/ui" \
+        -always-overwrite \
+        -verbose=1
+    
+    # Puis corriger les rpaths et signer
+    fix_bundle_rpaths "$bundle_dir"
+    sign_bundle "$bundle_dir"
+fi
+```
+
+**Résultat**: Les frameworks Qt (QtCore, QtGui, QtQuick, QtWidgets, QtQml) et tous les plugins nécessaires sont maintenant copiés dans le bundle, permettant à l'application de se lancer correctement.
 
 ### 1. Correction des Rpaths (`build-dmg.sh`)
 
