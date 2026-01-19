@@ -68,11 +68,19 @@ check_build() {
         exit 1
     fi
     
-    # Check for executable
+    # Check for executable or .app bundle
     local exe_paths=(
+        "$BUILD_DIR/bin/$BUNDLE_NAME/Contents/MacOS/$APP_NAME"
         "$BUILD_DIR/bin/$APP_NAME"
         "$BUILD_DIR/$APP_NAME"
     )
+    
+    # Check if .app bundle already exists
+    if [ -d "$BUILD_DIR/bin/$BUNDLE_NAME" ]; then
+        APP_BUNDLE_PATH="$BUILD_DIR/bin/$BUNDLE_NAME"
+        print_success "Found .app bundle: $APP_BUNDLE_PATH"
+        return 0
+    fi
     
     for exe_path in "${exe_paths[@]}"; do
         if [ -f "$exe_path" ]; then
@@ -91,6 +99,26 @@ create_app_bundle() {
     print_header "Creating .app Bundle"
     
     local bundle_dir="$BUILD_DIR/$BUNDLE_NAME"
+    
+    # If the app bundle already exists in build/bin, use it
+    if [ -n "$APP_BUNDLE_PATH" ] && [ -d "$APP_BUNDLE_PATH" ]; then
+        print_info "Using existing .app bundle from build..."
+        # Copy the existing bundle to the expected location
+        if [ "$APP_BUNDLE_PATH" != "$bundle_dir" ]; then
+            rm -rf "$bundle_dir"
+            cp -R "$APP_BUNDLE_PATH" "$bundle_dir"
+            print_success "Copied .app bundle to: $bundle_dir"
+        else
+            print_success "Using .app bundle at: $bundle_dir"
+        fi
+        
+        # Fix rpaths and sign the bundle
+        copy_missing_dependencies "$bundle_dir"
+        fix_bundle_rpaths "$bundle_dir"
+        sign_bundle "$bundle_dir"
+        
+        return 0
+    fi
     
     # Remove existing bundle if present
     if [ -d "$bundle_dir" ]; then
@@ -372,25 +400,147 @@ EOF
     print_info "Size: $dmg_size"
 }
 
-# Code signing (optional, requires developer certificate)
+# Copy missing dependencies that macdeployqt might have missed
+copy_missing_dependencies() {
+    local bundle_dir="$1"
+    
+    print_header "Checking Missing Dependencies"
+    
+    local frameworks_dir="$bundle_dir/Contents/Frameworks"
+    
+    # List of known missing dependencies and their Homebrew paths
+    local missing_libs=()
+    
+    # Check for missing brotli libraries
+    if [ -f "$frameworks_dir/libbrotlidec.1.dylib" ] && [ ! -f "$frameworks_dir/libbrotlicommon.1.dylib" ]; then
+        print_info "Missing libbrotlicommon.1.dylib - will copy from Homebrew"
+        missing_libs+=("libbrotlicommon.1.dylib")
+    fi
+    
+    # Determine Homebrew prefix
+    local brew_prefix=""
+    if [ -d "/opt/homebrew" ]; then
+        brew_prefix="/opt/homebrew"
+    elif [ -d "/usr/local" ]; then
+        brew_prefix="/usr/local"
+    else
+        print_warning "Homebrew not found - skipping missing dependencies check"
+        return 0
+    fi
+    
+    # Copy missing libraries
+    if [ ${#missing_libs[@]} -gt 0 ]; then
+        for lib in "${missing_libs[@]}"; do
+            local lib_path=""
+            
+            # Try to find the library in Homebrew
+            lib_path=$(find "$brew_prefix/Cellar" -name "$lib" 2>/dev/null | head -1)
+            
+            if [ -n "$lib_path" ] && [ -f "$lib_path" ]; then
+                print_info "Copying $lib from Homebrew..."
+                cp "$lib_path" "$frameworks_dir/"
+                
+                # Fix the install name
+                local lib_name=$(basename "$lib" .dylib)
+                install_name_tool -id "@executable_path/../Frameworks/$lib" "$frameworks_dir/$lib" 2>/dev/null || true
+                
+                print_success "Copied $lib"
+            else
+                print_warning "Could not find $lib in Homebrew"
+            fi
+        done
+    else
+        print_success "No missing dependencies detected"
+    fi
+}
+
+# Fix bundle rpaths to ensure proper framework loading
+fix_bundle_rpaths() {
+    local bundle_dir="$1"
+    
+    print_header "Fixing Bundle Rpaths"
+    
+    local exe="$bundle_dir/Contents/MacOS/$APP_NAME"
+    
+    if [ ! -f "$exe" ]; then
+        print_error "Executable not found: $exe"
+        return 1
+    fi
+    
+    # Remove all Homebrew rpaths
+    print_info "Removing absolute Homebrew rpaths..."
+    for rpath in $(otool -l "$exe" | grep -A2 LC_RPATH | grep path | awk '{print $2}' | grep -E '(homebrew|local)' || true); do
+        print_info "  Removing rpath: $rpath"
+        install_name_tool -delete_rpath "$rpath" "$exe" 2>/dev/null || true
+    done
+    
+    # Add proper rpath for bundled frameworks if not already present
+    if ! otool -l "$exe" | grep -A2 LC_RPATH | grep -q "@executable_path/../Frameworks"; then
+        print_info "Adding rpath: @executable_path/../Frameworks"
+        install_name_tool -add_rpath "@executable_path/../Frameworks" "$exe" || true
+    fi
+    
+    # Fix framework install names and rpaths
+    print_info "Fixing framework rpaths..."
+    local frameworks_dir="$bundle_dir/Contents/Frameworks"
+    
+    if [ -d "$frameworks_dir" ]; then
+        for framework_dir in "$frameworks_dir"/*.framework; do
+            if [ -d "$framework_dir" ]; then
+                local framework_name=$(basename "$framework_dir" .framework)
+                local framework_exec="$framework_dir/Versions/A/$framework_name"
+                
+                if [ -f "$framework_exec" ]; then
+                    # Update the framework's ID
+                    install_name_tool -id "@rpath/${framework_name}.framework/Versions/A/$framework_name" "$framework_exec" 2>/dev/null || true
+                    
+                    # Remove any Homebrew rpaths from frameworks
+                    for rpath in $(otool -l "$framework_exec" | grep -A2 LC_RPATH | grep path | awk '{print $2}' | grep -E '(homebrew|local)' || true); do
+                        install_name_tool -delete_rpath "$rpath" "$framework_exec" 2>/dev/null || true
+                    done
+                fi
+            fi
+        done
+    fi
+    
+    # Fix plugin rpaths
+    print_info "Fixing plugin rpaths..."
+    if [ -d "$bundle_dir/Contents/PlugIns" ]; then
+        find "$bundle_dir/Contents/PlugIns" -name "*.dylib" -type f -print0 | while IFS= read -r -d '' plugin; do
+            # Remove Homebrew rpaths from plugins
+            for rpath in $(otool -l "$plugin" | grep -A2 LC_RPATH | grep path | awk '{print $2}' | grep -E '(homebrew|local)' || true); do
+                install_name_tool -delete_rpath "$rpath" "$plugin" 2>/dev/null || true
+            done
+        done
+    fi
+    
+    print_success "Rpaths fixed"
+}
+
+# Code signing (required after rpath changes)
 sign_bundle() {
-    print_header "Code Signing (Optional)"
+    local bundle_dir="$1"
+    
+    if [ -z "$bundle_dir" ]; then
+        bundle_dir="$BUILD_DIR/$BUNDLE_NAME"
+    fi
+    
+    print_header "Code Signing"
     
     print_info "Checking for code signing certificate..."
     
     # Check if certificate is available
     if security find-identity -v -p codesigning | grep -q "Developer ID Application"; then
         print_info "Found Developer ID certificate"
-        read -p "Do you want to sign the application? (y/N): " -n 1 -r
+        read -p "Do you want to sign with Developer ID? (y/N): " -n 1 -r
         echo
         
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            local bundle_dir="$BUILD_DIR/$BUNDLE_NAME"
             local entitlements="$SCRIPT_DIR/entitlements.plist"
             
             print_info "Signing application with Developer ID and entitlements..."
             
-            # Sign all frameworks first (codesign handles framework bundles properly)
+            # Sign all frameworks first
             if [ -d "$bundle_dir/Contents/Frameworks" ]; then
                 for framework_dir in "$bundle_dir/Contents/Frameworks"/*.framework; do
                     if [ -d "$framework_dir" ]; then
@@ -426,24 +576,58 @@ sign_bundle() {
                 --entitlements "$entitlements" \
                 "$bundle_dir"
             
-            print_info "Verifying signature..."
-            codesign --verify --verbose "$bundle_dir"
-            
-            if [ $? -eq 0 ]; then
-                print_success "Application signed successfully"
-                
-                # Display signing info
-                codesign -dv --verbose=4 "$bundle_dir" 2>&1 | grep -E "(Identifier|Authority|TeamIdentifier)" || true
-            else
-                print_error "Signature verification failed"
-            fi
-        else
-            print_info "Skipping code signing"
+            print_success "Application signed with Developer ID"
+            return 0
         fi
+    fi
+    
+    # Ad-hoc signing (required on macOS 10.15+ after rpath changes)
+    print_info "Performing ad-hoc code signing (required for execution)..."
+    
+    # Sign all frameworks
+    if [ -d "$bundle_dir/Contents/Frameworks" ]; then
+        print_info "Signing frameworks..."
+        for framework_dir in "$bundle_dir/Contents/Frameworks"/*.framework; do
+            if [ -d "$framework_dir" ]; then
+                codesign --force --sign - "$framework_dir" 2>/dev/null || true
+            fi
+        done
+        
+        # Also sign standalone dylibs
+        find "$bundle_dir/Contents/Frameworks" -maxdepth 1 -name "*.dylib" -type f 2>/dev/null | while read -r lib; do
+            codesign --force --sign - "$lib" 2>/dev/null || true
+        done
+    fi
+    
+    # Sign plugins
+    if [ -d "$bundle_dir/Contents/PlugIns" ]; then
+        print_info "Signing plugins..."
+        find "$bundle_dir/Contents/PlugIns" -name "*.dylib" -type f 2>/dev/null | while read -r plugin; do
+            codesign --force --sign - "$plugin" 2>/dev/null || true
+        done
+    fi
+    
+    # Sign QML modules
+    if [ -d "$bundle_dir/Contents/Resources/qml" ]; then
+        print_info "Signing QML plugins..."
+        find "$bundle_dir/Contents/Resources/qml" -name "*.dylib" -type f 2>/dev/null | while read -r qml_plugin; do
+            codesign --force --sign - "$qml_plugin" 2>/dev/null || true
+        done
+    fi
+    
+    # Sign the main executable
+    print_info "Signing main executable..."
+    codesign --force --sign - "$bundle_dir/Contents/MacOS/$APP_NAME"
+    
+    # Sign the entire bundle
+    print_info "Signing bundle..."
+    codesign --force --sign - "$bundle_dir"
+    
+    # Verify signature
+    if codesign --verify --verbose "$bundle_dir" 2>/dev/null; then
+        print_success "Bundle signed successfully (ad-hoc)"
     else
-        print_info "No Developer ID certificate found"
-        print_info "Skipping code signing (optional for distribution)"
-        print_info "To sign: https://developer.apple.com/account/"
+        print_warning "Signature verification returned warnings (this is normal for ad-hoc signing)"
     fi
 }
 

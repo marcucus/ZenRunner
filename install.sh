@@ -209,7 +209,8 @@ build_application() {
     
     cd ..
     
-    if [ -f "build/bin/ZenRunner" ] || [ -f "build/bin/Release/ZenRunner" ]; then
+    # Check for executable (different locations on different platforms)
+    if [ -f "build/bin/ZenRunner" ] || [ -f "build/bin/Release/ZenRunner" ] || [ -d "build/bin/ZenRunner.app" ]; then
         print_success "Build completed successfully"
     else
         print_error "Build failed - executable not found"
