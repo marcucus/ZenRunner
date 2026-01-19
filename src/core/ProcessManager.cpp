@@ -2,6 +2,7 @@
 #include <QDateTime>
 #include <QDir>
 #include <QCoreApplication>
+#include <QStandardPaths>
 #include <algorithm>
 
 #ifdef Q_OS_UNIX
@@ -519,22 +520,89 @@ bool ProcessManager::runScript(const QString& id, const QString& scriptName, con
         args = QStringList{"run", scriptName};
     }
     
+    // Set up environment with enhanced PATH
+    // On macOS, GUI apps don't inherit shell PATH, so we need to add common locations
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    QString currentPath = env.value("PATH");
+    
+#ifdef Q_OS_MACOS
+    // Add common macOS binary locations to PATH
+    // These are where Homebrew and other package managers typically install binaries
+    QStringList commonPaths = {
+        "/usr/local/bin",           // Homebrew Intel Mac
+        "/opt/homebrew/bin",        // Homebrew Apple Silicon
+        "/opt/local/bin",           // MacPorts
+        "/usr/bin",                 // System binaries
+        "/bin",                     // Basic system binaries
+        QDir::homePath() + "/.nvm/versions/node/*/bin",  // NVM installations
+        QDir::homePath() + "/.volta/bin",                 // Volta
+        QDir::homePath() + "/.local/bin"                  // User local binaries
+    };
+    
+    // Build enhanced PATH with common locations
+    QStringList pathComponents;
+    
+    // Add local node_modules/.bin first (highest priority)
+    QString binPath = projectDir.absoluteFilePath("node_modules/.bin");
+    if (QDir(binPath).exists()) {
+        pathComponents.append(binPath);
+    }
+    
+    // Add common paths (only if they exist)
+    for (const QString& path : commonPaths) {
+        // Handle glob patterns for NVM (simplified - just check base directory)
+        if (path.contains("*")) {
+            QString basePath = path.section('/', 0, -3); // Get base directory before wildcard
+            if (QDir(basePath).exists()) {
+                // For NVM, try to find any node version
+                QDir nvmDir(basePath);
+                QStringList entries = nvmDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+                for (const QString& entry : entries) {
+                    QString nvmBinPath = basePath + "/" + entry + "/bin";
+                    if (QDir(nvmBinPath).exists()) {
+                        pathComponents.append(nvmBinPath);
+                        break; // Use first found version
+                    }
+                }
+            }
+        } else if (QDir(path).exists()) {
+            pathComponents.append(path);
+        }
+    }
+    
+    // Add existing PATH at the end
+    if (!currentPath.isEmpty()) {
+        pathComponents.append(currentPath);
+    }
+    
+    env.insert("PATH", pathComponents.join(":"));
+    
+    qDebug() << "Enhanced PATH:" << env.value("PATH");
+#else
+    // On Linux/Windows, just add local node_modules/.bin to existing PATH
+    QString binPath = projectDir.absoluteFilePath("node_modules/.bin");
+    if (QDir(binPath).exists()) {
+        env.insert("PATH", binPath + ":" + currentPath);
+    }
+#endif
+    
+    // Try to find the full path to the command
+    // This is especially important on macOS where PATH may be minimal
+    QString fullCommandPath = QStandardPaths::findExecutable(command, env.value("PATH").split(':'));
+    if (!fullCommandPath.isEmpty()) {
+        qDebug() << "Found executable at:" << fullCommandPath;
+        command = fullCommandPath;
+    } else {
+        qWarning() << "Warning: Could not find" << command << "in PATH. Will try to execute anyway.";
+        qDebug() << "Current PATH:" << env.value("PATH");
+    }
+    
     // Create process config with proper environment
     ProcessConfig config;
     config.command = command;
     config.arguments = args;
     config.workingDirectory = workingDir;
     config.captureOutput = true;
-    
-    // Set up environment with PATH
-    // This ensures npm/yarn/pnpm can find node executables
-    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-    
-    // Add local node_modules/.bin to PATH
-    QString binPath = projectDir.absoluteFilePath("node_modules/.bin");
-    QString currentPath = env.value("PATH");
-    env.insert("PATH", binPath + ":" + currentPath);
-    
     config.environment = env;
     
     qDebug() << "Executing:" << command << args.join(" ") << "in" << workingDir;
