@@ -209,6 +209,26 @@ cd packaging/macos && ./build-dmg.sh
   cmake --build . --config Release
   ```
 
+### L'application crash au lancement après installation
+
+- **Cause** : Problème de rpaths ou de signature de code
+- **Solution** : Le script build-dmg.sh a été mis à jour pour:
+  - Supprimer les rpaths Homebrew absolus
+  - Ajouter les rpaths relatifs corrects (`@executable_path/../Frameworks`)
+  - Vérifier la présence de tous les frameworks Qt requis
+  - Signer correctement le bundle avec les bonnes options
+  
+  ```bash
+  # Vérifier les rpaths après création du bundle
+  otool -l build/ZenRunner.app/Contents/MacOS/ZenRunner | grep -A2 LC_RPATH
+  
+  # Vérifier les frameworks Qt présents
+  ls -la build/ZenRunner.app/Contents/Frameworks/
+  
+  # Vérifier la signature
+  codesign --verify --verbose build/ZenRunner.app
+  ```
+
 ## 📊 Taille Attendue
 
 - **Application non compressée** : ~20-30 MB
@@ -242,9 +262,11 @@ Pour plus de détails :
 
 En cas de problème :
 
-1. Consulter [docs/PACKAGING.md](../../docs/PACKAGING.md)
-2. Vérifier les logs pendant la création du DMG
-3. Ouvrir une issue : [GitHub Issues](https://github.com/marcucus/ZenRunner/issues)
+1. **Consulter le guide de diagnostic**: [DIAGNOSTIC_DMG.md](packaging/macos/DIAGNOSTIC_DMG.md) - Guide complet pour diagnostiquer et résoudre les problèmes de crash
+2. **Consulter la documentation**: [docs/PACKAGING.md](../../docs/PACKAGING.md)
+3. **Vérifier les logs** pendant la création du DMG
+4. **Tester sur une machine différente** pour isoler les problèmes d'environnement
+5. **Ouvrir une issue**: [GitHub Issues](https://github.com/marcucus/ZenRunner/issues) avec les logs et informations de diagnostic
 
 ---
 
