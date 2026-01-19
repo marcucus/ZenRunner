@@ -2,6 +2,8 @@
 
 Ce guide explique comment créer un fichier `.dmg` pour installer ZenRunner sur macOS.
 
+> **✅ MISE À JOUR JANVIER 2026**: Le problème de lancement de l'application après installation DMG a été résolu. Le script `build-dmg.sh` déploie maintenant correctement tous les frameworks Qt nécessaires, même quand le bundle est créé par CMake.
+
 ## 🚀 Méthode Rapide (Recommandée)
 
 ### Prérequis
@@ -211,19 +213,21 @@ cd packaging/macos && ./build-dmg.sh
 
 ### L'application crash au lancement après installation
 
-- **Cause** : Problème de rpaths ou de signature de code
-- **Solution** : Le script build-dmg.sh a été mis à jour pour:
+- **Cause** : Frameworks Qt manquants ou problème de rpaths/signature de code
+- **Solution** : Le script build-dmg.sh a été mis à jour (Janvier 2026) pour:
+  - **Déployer les frameworks Qt** avec `macdeployqt` même quand le bundle CMake existe déjà
   - Supprimer les rpaths Homebrew absolus
   - Ajouter les rpaths relatifs corrects (`@executable_path/../Frameworks`)
   - Vérifier la présence de tous les frameworks Qt requis
   - Signer correctement le bundle avec les bonnes options
   
   ```bash
+  # Vérifier que les frameworks Qt sont présents
+  ls -la build/ZenRunner.app/Contents/Frameworks/
+  # Devrait montrer: QtCore.framework, QtGui.framework, QtQuick.framework, etc.
+  
   # Vérifier les rpaths après création du bundle
   otool -l build/ZenRunner.app/Contents/MacOS/ZenRunner | grep -A2 LC_RPATH
-  
-  # Vérifier les frameworks Qt présents
-  ls -la build/ZenRunner.app/Contents/Frameworks/
   
   # Vérifier la signature
   codesign --verify --verbose build/ZenRunner.app
