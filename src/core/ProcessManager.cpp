@@ -607,7 +607,6 @@ bool ProcessManager::runScript(const QString& id, const QString& scriptName, con
     
     // Join path components for environment variable
     env.insert("PATH", pathComponents.join(":"));
-    }
     
     // Create process config with proper environment
     ProcessConfig config;
