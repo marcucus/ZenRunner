@@ -555,13 +555,20 @@ bool ProcessManager::runScript(const QString& id, const QString& scriptName, con
     QString nvmBasePath = QDir::homePath() + "/.nvm/versions/node";
     QDir nvmDir(nvmBasePath);
     if (nvmDir.exists()) {
-        // Get all node version directories and use the first one (or could pick latest)
-        QStringList versions = nvmDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name | QDir::Reversed);
-        if (!versions.isEmpty()) {
-            QString nvmBinPath = nvmBasePath + "/" + versions.first() + "/bin";
-            if (QDir(nvmBinPath).exists()) {
-                pathComponents.append(nvmBinPath);
-                qDebug() << "Found NVM installation at:" << nvmBinPath;
+        // First, check for 'current' symlink which points to the active version
+        QString currentSymlink = QDir::homePath() + "/.nvm/current/bin";
+        if (QDir(currentSymlink).exists()) {
+            pathComponents.append(currentSymlink);
+            qDebug() << "Found NVM current version at:" << currentSymlink;
+        } else {
+            // Fallback: Get all node version directories sorted in reverse (newest first)
+            QStringList versions = nvmDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name | QDir::Reversed);
+            if (!versions.isEmpty()) {
+                QString nvmBinPath = nvmBasePath + "/" + versions.first() + "/bin";
+                if (QDir(nvmBinPath).exists()) {
+                    pathComponents.append(nvmBinPath);
+                    qDebug() << "Found NVM installation at:" << nvmBinPath << "(version:" << versions.first() << ")";
+                }
             }
         }
     }
@@ -582,22 +589,24 @@ bool ProcessManager::runScript(const QString& id, const QString& scriptName, con
     qDebug() << "Enhanced PATH with" << pathComponents.size() << "additional locations";
 #endif
     
-    // Add existing PATH at the end
+    // Add existing PATH components at the end
     if (!currentPath.isEmpty()) {
-        pathComponents.append(currentPath);
+        pathComponents.append(currentPath.split(':'));
     }
-    
-    env.insert("PATH", pathComponents.join(":"));
     
     // Try to find the full path to the command
     // This is especially important on macOS where PATH may be minimal
-    QString fullCommandPath = QStandardPaths::findExecutable(command, env.value("PATH").split(':'));
+    QString fullCommandPath = QStandardPaths::findExecutable(command, pathComponents);
     if (!fullCommandPath.isEmpty()) {
         qDebug() << "Found executable at:" << fullCommandPath;
         command = fullCommandPath;
     } else {
         qWarning() << "Warning: Could not find" << command << "in PATH. Will try to execute anyway.";
-        qDebug() << "Current PATH:" << env.value("PATH");
+        qDebug() << "Searched in" << pathComponents.size() << "directories";
+    }
+    
+    // Join path components for environment variable
+    env.insert("PATH", pathComponents.join(":"));
     }
     
     // Create process config with proper environment
