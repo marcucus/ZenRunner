@@ -116,7 +116,16 @@ int main(int argc, char *argv[]) {
     UI::WorkspaceViewModel workspaceViewModel;
     workspaceViewModel.setRepository(workspaceRepo.get());
     workspaceViewModel.setProjectRepository(projectRepo.get());
-    workspaceViewModel.setProcessManager(dynamic_cast<Core::IProcessManager*>(&processManager));
+    
+    // Note: ProcessManager doesn't currently inherit from IProcessManager
+    // This cast will return nullptr. TODO: Make ProcessManager implement IProcessManager
+    auto* processManagerInterface = dynamic_cast<Core::IProcessManager*>(&processManager);
+    if (processManagerInterface) {
+        workspaceViewModel.setProcessManager(processManagerInterface);
+    } else {
+        qWarning() << "ProcessManager doesn't implement IProcessManager - workspace batch operations will be disabled";
+    }
+    
     workspaceViewModel.loadWorkspaces();
     qDebug() << "Loaded" << workspaceViewModel.count() << "workspaces";
     

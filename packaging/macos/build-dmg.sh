@@ -138,18 +138,23 @@ create_app_bundle() {
         print_info "QML directory: $PROJECT_ROOT/src/ui"
         
         # Run macdeployqt with proper options
-        "$macdeployqt_path" "$bundle_dir" \
+        if ! "$macdeployqt_path" "$bundle_dir" \
             -qmldir="$PROJECT_ROOT/src/ui" \
             -always-overwrite \
-            -verbose=1
+            -verbose=1; then
+            print_error "macdeployqt failed on first pass"
+            exit 1
+        fi
         
         # Run macdeployqt again to fix any missing dependencies in plugins/frameworks
         # This second pass handles transitive dependencies that the first pass might miss,
         # particularly dependencies of Qt plugins (like platform-specific dylibs)
         print_info "Running second pass to fix plugin dependencies..."
-        "$macdeployqt_path" "$bundle_dir" \
+        if ! "$macdeployqt_path" "$bundle_dir" \
             -always-overwrite \
-            -verbose=0
+            -verbose=0; then
+            print_warning "macdeployqt second pass failed (non-critical)"
+        fi
         
         # Fix rpaths and sign the bundle
         copy_missing_dependencies "$bundle_dir"
@@ -215,18 +220,23 @@ create_app_bundle() {
     print_info "QML directory: $PROJECT_ROOT/src/ui"
     
     # Run macdeployqt with proper options
-    "$macdeployqt_path" "$bundle_dir" \
+    if ! "$macdeployqt_path" "$bundle_dir" \
         -qmldir="$PROJECT_ROOT/src/ui" \
         -always-overwrite \
-        -verbose=1
+        -verbose=1; then
+        print_error "macdeployqt failed on first pass"
+        exit 1
+    fi
     
     # Run macdeployqt again to fix any missing dependencies in plugins/frameworks
     # This second pass handles transitive dependencies that the first pass might miss,
     # particularly dependencies of Qt plugins (like platform-specific dylibs)
     print_info "Running second pass to fix plugin dependencies..."
-    "$macdeployqt_path" "$bundle_dir" \
+    if ! "$macdeployqt_path" "$bundle_dir" \
         -always-overwrite \
-        -verbose=0
+        -verbose=0; then
+        print_warning "macdeployqt second pass failed (non-critical)"
+    fi
     
     print_success "App bundle created: $bundle_dir"
     

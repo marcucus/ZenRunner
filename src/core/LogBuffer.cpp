@@ -15,14 +15,16 @@ namespace ZenRunner::Core {
  */
 class LogBuffer : public ILogBuffer {
 public:
-    explicit LogBuffer(size_t capacity = 5000)
-        : capacity_(capacity)
-        , buffer_(std::make_unique<CircularBuffer<LogEntry, 5000>>())
+    // Note: capacity parameter is provided for API compatibility but currently
+    // the CircularBuffer uses a compile-time fixed size of 5000 entries (per specs).
+    // To support dynamic capacity, CircularBuffer would need to be refactored
+    // to use std::vector instead of std::array.
+    explicit LogBuffer([[maybe_unused]] size_t capacity = 5000)
+        : buffer_(std::make_unique<CircularBuffer<LogEntry, 5000>>())
         , ansiParser_(createAnsiParser())
         , updateCallback_(nullptr)
     {
-        // Pre-allocate if capacity is different from default
-        // For simplicity, we use the fixed-size template parameter
+        // Fixed capacity of 5000 entries as per specifications
     }
 
     ~LogBuffer() override = default;
@@ -103,7 +105,7 @@ public:
     }
 
     size_t capacity() const override {
-        return capacity_;
+        return 5000; // Fixed capacity as per specifications
     }
 
     bool isEmpty() const override {
@@ -118,16 +120,12 @@ public:
         buffer_->clear();
     }
 
-    void setCapacity(size_t newCapacity) override {
+    void setCapacity([[maybe_unused]] size_t newCapacity) override {
         // Note: With fixed-size template, we can't dynamically change capacity
-        // This would require a dynamic implementation or recreating the buffer
-        // For now, we just update the tracked capacity value
-        capacity_ = newCapacity;
-        
-        // In a production implementation, you might want to:
-        // 1. Create a new buffer with the new capacity
-        // 2. Copy existing entries up to the new capacity
-        // 3. Swap the buffers
+        // This would require a dynamic implementation using std::vector or
+        // recreating the buffer with a different template parameter.
+        // For now, this is a no-op as the buffer uses a compile-time fixed size.
+        // The 5000-entry capacity is sufficient for the specifications.
     }
 
     void setUpdateCallback(std::function<void()> callback) override {
@@ -135,7 +133,6 @@ public:
     }
 
 private:
-    size_t capacity_;
     std::unique_ptr<CircularBuffer<LogEntry, 5000>> buffer_;
     std::unique_ptr<IAnsiParser> ansiParser_;
     std::function<void()> updateCallback_;

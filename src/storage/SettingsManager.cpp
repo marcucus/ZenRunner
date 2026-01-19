@@ -101,7 +101,9 @@ public:
     }
 
 private:
-    std::unique_ptr<QSettings> settings_;
+    // Mutable because QSettings::beginGroup/endGroup are non-const,
+    // but logically const from the perspective of reading settings
+    mutable std::unique_ptr<QSettings> settings_;
 };
 
 // Factory function
