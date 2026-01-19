@@ -521,54 +521,66 @@ bool ProcessManager::runScript(const QString& id, const QString& scriptName, con
     }
     
     // Set up environment with enhanced PATH
-    // On macOS, GUI apps don't inherit shell PATH, so we need to add common locations
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     QString currentPath = env.value("PATH");
     
+    // Build enhanced PATH with common locations
+    QStringList pathComponents;
+    
+    // Add local node_modules/.bin first (highest priority for all platforms)
+    QString binPath = projectDir.absoluteFilePath("node_modules/.bin");
+    if (QDir(binPath).exists()) {
+        pathComponents.append(binPath);
+    }
+    
 #ifdef Q_OS_MACOS
-    // Add common macOS binary locations to PATH
+    // On macOS, GUI apps don't inherit shell PATH, so we need to add common locations
     // These are where Homebrew and other package managers typically install binaries
     QStringList commonPaths = {
         "/usr/local/bin",           // Homebrew Intel Mac
         "/opt/homebrew/bin",        // Homebrew Apple Silicon
         "/opt/local/bin",           // MacPorts
         "/usr/bin",                 // System binaries
-        "/bin",                     // Basic system binaries
-        QDir::homePath() + "/.nvm/versions/node/*/bin",  // NVM installations
-        QDir::homePath() + "/.volta/bin",                 // Volta
-        QDir::homePath() + "/.local/bin"                  // User local binaries
+        "/bin"                      // Basic system binaries
     };
-    
-    // Build enhanced PATH with common locations
-    QStringList pathComponents;
-    
-    // Add local node_modules/.bin first (highest priority)
-    QString binPath = projectDir.absoluteFilePath("node_modules/.bin");
-    if (QDir(binPath).exists()) {
-        pathComponents.append(binPath);
-    }
     
     // Add common paths (only if they exist)
     for (const QString& path : commonPaths) {
-        // Handle glob patterns for NVM (simplified - just check base directory)
-        if (path.contains("*")) {
-            QString basePath = path.section('/', 0, -3); // Get base directory before wildcard
-            if (QDir(basePath).exists()) {
-                // For NVM, try to find any node version
-                QDir nvmDir(basePath);
-                QStringList entries = nvmDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
-                for (const QString& entry : entries) {
-                    QString nvmBinPath = basePath + "/" + entry + "/bin";
-                    if (QDir(nvmBinPath).exists()) {
-                        pathComponents.append(nvmBinPath);
-                        break; // Use first found version
-                    }
-                }
-            }
-        } else if (QDir(path).exists()) {
+        if (QDir(path).exists()) {
             pathComponents.append(path);
         }
     }
+    
+    // Check for NVM installation - look in ~/.nvm/versions/node/
+    QString nvmBasePath = QDir::homePath() + "/.nvm/versions/node";
+    QDir nvmDir(nvmBasePath);
+    if (nvmDir.exists()) {
+        // Get all node version directories and use the first one (or could pick latest)
+        QStringList versions = nvmDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name | QDir::Reversed);
+        if (!versions.isEmpty()) {
+            QString nvmBinPath = nvmBasePath + "/" + versions.first() + "/bin";
+            if (QDir(nvmBinPath).exists()) {
+                pathComponents.append(nvmBinPath);
+                qDebug() << "Found NVM installation at:" << nvmBinPath;
+            }
+        }
+    }
+    
+    // Check for Volta installation
+    QString voltaBinPath = QDir::homePath() + "/.volta/bin";
+    if (QDir(voltaBinPath).exists()) {
+        pathComponents.append(voltaBinPath);
+        qDebug() << "Found Volta installation at:" << voltaBinPath;
+    }
+    
+    // Add user local binaries
+    QString userLocalBin = QDir::homePath() + "/.local/bin";
+    if (QDir(userLocalBin).exists()) {
+        pathComponents.append(userLocalBin);
+    }
+    
+    qDebug() << "Enhanced PATH with" << pathComponents.size() << "additional locations";
+#endif
     
     // Add existing PATH at the end
     if (!currentPath.isEmpty()) {
@@ -576,15 +588,6 @@ bool ProcessManager::runScript(const QString& id, const QString& scriptName, con
     }
     
     env.insert("PATH", pathComponents.join(":"));
-    
-    qDebug() << "Enhanced PATH:" << env.value("PATH");
-#else
-    // On Linux/Windows, just add local node_modules/.bin to existing PATH
-    QString binPath = projectDir.absoluteFilePath("node_modules/.bin");
-    if (QDir(binPath).exists()) {
-        env.insert("PATH", binPath + ":" + currentPath);
-    }
-#endif
     
     // Try to find the full path to the command
     // This is especially important on macOS where PATH may be minimal
