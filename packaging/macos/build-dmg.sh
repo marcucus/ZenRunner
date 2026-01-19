@@ -121,7 +121,7 @@ create_app_bundle() {
         
         if command -v macdeployqt &> /dev/null; then
             macdeployqt_path="macdeployqt"
-            qt_path="$(dirname $(dirname $(which macdeployqt)))"
+            qt_path="$(dirname "$(dirname "$(which macdeployqt)")")"
         elif [ -d "/opt/homebrew/opt/qt@6/bin" ]; then
             macdeployqt_path="/opt/homebrew/opt/qt@6/bin/macdeployqt"
             qt_path="/opt/homebrew/opt/qt@6"
@@ -144,6 +144,8 @@ create_app_bundle() {
             -verbose=1
         
         # Run macdeployqt again to fix any missing dependencies in plugins/frameworks
+        # This second pass handles transitive dependencies that the first pass might miss,
+        # particularly dependencies of Qt plugins (like platform-specific dylibs)
         print_info "Running second pass to fix plugin dependencies..."
         "$macdeployqt_path" "$bundle_dir" \
             -always-overwrite \
@@ -196,7 +198,7 @@ create_app_bundle() {
     
     if command -v macdeployqt &> /dev/null; then
         macdeployqt_path="macdeployqt"
-        qt_path="$(dirname $(dirname $(which macdeployqt)))"
+        qt_path="$(dirname "$(dirname "$(which macdeployqt)")")"
     elif [ -d "/opt/homebrew/opt/qt@6/bin" ]; then
         macdeployqt_path="/opt/homebrew/opt/qt@6/bin/macdeployqt"
         qt_path="/opt/homebrew/opt/qt@6"
@@ -219,6 +221,8 @@ create_app_bundle() {
         -verbose=1
     
     # Run macdeployqt again to fix any missing dependencies in plugins/frameworks
+    # This second pass handles transitive dependencies that the first pass might miss,
+    # particularly dependencies of Qt plugins (like platform-specific dylibs)
     print_info "Running second pass to fix plugin dependencies..."
     "$macdeployqt_path" "$bundle_dir" \
         -always-overwrite \
