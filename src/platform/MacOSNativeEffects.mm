@@ -68,8 +68,8 @@ bool MacOSNativeEffects::applyVibrancy(QWindow *window)
         [nsWindow setBackgroundColor:[NSColor clearColor]];
         
         // Create and configure NSVisualEffectView
-        NSVisualEffectView *effectView = [[NSVisualEffectView alloc] 
-            initWithFrame:[view bounds]];
+        NSVisualEffectView *effectView = [[[NSVisualEffectView alloc] 
+            initWithFrame:[view bounds]] autorelease];
         
         // Configure vibrancy material
         [effectView setMaterial:NSVisualEffectMaterialHUDWindow];
@@ -79,7 +79,7 @@ bool MacOSNativeEffects::applyVibrancy(QWindow *window)
         // Auto-resize with window
         [effectView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
         
-        // Insert as bottom layer
+        // Insert as bottom layer (this will retain effectView)
         [view addSubview:effectView positioned:NSWindowBelow relativeTo:nil];
         
         return true;
